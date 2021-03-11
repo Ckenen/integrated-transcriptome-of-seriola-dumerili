@@ -1,0 +1,174 @@
+Seriola dumerili
+
+
+Sex:
+==============
+Ma: Male
+Fe: Female
+Mi: Mix
+
+Tissue:
+==============
+Br: Brain
+Ey: Eye
+Gi: Gill
+Go: Gonad
+He: Heart
+Ki: Kidney
+Li: Liver
+Mu: Muscle
+In: Intestines
+Pi: Pituitary
+Sp: Spleen
+St: Stomach
+
+
+taco_run -p 8 -o taco_out --gtf-expr-attr FPKM --filter-min-length 200 --filter-min-expr 0.5 --isoform-frac 0.05 --filter-splice-juncs FALSE gtf.4.txt
+
+$ cpat.py -r /database/hg19.fa -g Human_test_coding_mRNA_hg19.bed -d ../dat/Human_logitModel.RData -x ../dat/Human_Hexamer.tsv -o output1
+make_logitModel.py  -x GTS_Hexamer.tsv -c cpat.protein_coding.cds.fasta -n cpat.lncRNA.fasta -o GTS
+cpat.py -r data/genome/genome.fasta -g results/taco/stringtie/assembly.bed -d ../ncbi/Sdu_1.0/GTS.logit.RData -x ../ncbi/Sdu_1.0/GTS_Hexamer.tsv  -o cpat_out
+
+dmrt1 (dmy)
+
+Type: transcript
+transcript_id: rna-XM_022753750.1
+gene_id: gene-LOC111227985
+gene_name: LOC111227985
+---------------------------
+NW_019174448.1:1852746-1894627
+
+
+amh
+
+NW_019174577.1:1097203-1099272
+
+Type: transcript
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+
+
+wt1
+NW_019174258.1:3005652-3014243
++
+
+sox9
+
+NW_019174323.1:14888210-14890826
+
+Type: transcript
+transcript_id: rna-XM_022742544.1
+gene_id: gene-LOC111219771
+gene_name: LOC111219771 (sox9a)
+---------------------------
+
+
+cyp19a1
+
+
+foxl2
+NW_019174592.1:1187674-1189604
++
+
+
+
+NW_019174577.1:1096751-1099376
+
+m64048_201010_094921/1508194/17825_20049
+NW_019174577.1:1096751-1099376
+Score = 60.0
+--------------
+Exon number: 5
+NW_019174577.1:1097835-1098265
+
+
+NW_019174577.1:1096751-1099376
+
+m64048_201010_094921/1508194/17825_20049
+NW_019174577.1:1096751-1099376
+Score = 60.0
+--------------
+Exon number: 5
+NW_019174577.1:1097835-1098265
+
+
+
+NW_019174577.1:1095110-1099089
+
+m64048_201010_094921/1968988/151599_160668
+NW_019174577.1:1095110-1099089
+Score = 60.0
+--------------
+Exon number: 2
+NW_019174577.1:1097835-1098265
+
+
+
+NW_019174577.1:1097203-1099272
+
+Type: transcript
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: CDS
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
+---------------------------
+Type: exon
+transcript_id: rna-XM_022759475.1
+gene_id: gene-amh
+gene_name: amh
