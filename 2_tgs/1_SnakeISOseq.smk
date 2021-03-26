@@ -15,6 +15,7 @@ rule all:
         expand(outdir + "/polished/{sample}.bam", sample=samples),
         outdir + "/genome.isoseq.mmi",
         expand(outdir + "/aligned/{sample}.bam", sample=samples),
+        expand(outdir + "/aligned/{sample}.stats", sample=samples),
         expand(outdir + "/collapsed/{sample}.gff", sample=samples),
         expand(outdir + "/collapsed/{sample}.sorted.gtf.gz", sample=samples),
         # expand(outdir + "/collapsed/{sample}.bed.gz", sample=samples),
@@ -154,7 +155,15 @@ rule collapse:
         isoseq3 collapse -j {threads} {input.bam} {input.ccs} {output.gff}
         """
 
-rule bgzipGtf:
+# rule merge_gtf:
+#     input:
+#     output:
+#     log:
+#     shell:
+#         """
+#         """
+
+rule gtf_bgzip:
     input:
         gff = outdir + "/collapsed/{sample}.gff"
     output:
@@ -168,7 +177,7 @@ rule bgzipGtf:
 
 rule gtf_to_bed:
     input:
-        gtf = rules.bgzipGtf.output.gtf
+        gtf = rules.gtf_bgzip.output.gtf
     output:
         bed = outdir + "/collapsed/{sample}.bed.gz",
         tbi = outdir + "/collapsed/{sample}.bed.gz.tbi"

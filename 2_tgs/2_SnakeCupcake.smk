@@ -1,287 +1,302 @@
-#!/usr/bin/env python
+#!/usr/bin/env snakemake
 configfile: "config.yaml"
-samples = config["samples"]
-threads = 80
-outdir = "results/cupcake"
-
+samples = ["Adult_Male", "Adult_Female", "Juvenile"]
+threads = 20
 
 rule all:
     input:
-        outdir + "/genome.mmi",
-        expand(outdir + "/mapping/{sample}.hq.fasta", sample=samples),
-        expand(outdir + "/mapping/{sample}.sam", sample=samples),
-        expand(outdir + "/mapping/{sample}.sorted.bam", sample=samples),
-        expand(outdir + "/mapping/{sample}.sorted.sam", sample=samples),
-        expand(outdir + "/collapsed/{sample}/out.collapsed.gff", sample=samples),
-        expand(outdir + "/collapsed/{sample}/out.collapsed.abundance.txt", sample=samples),
-        # expand(outdir + "/collapsed/{sample}/out.collapsed.filtered.gff", sample=samples),
-        # outdir + "/chained",
-        expand(outdir + "/fusion/{sample}/out.gff", sample=samples),
-        expand(outdir + "/fusion.sqanti3/{sample}", sample=samples),
+        # Mapping
+        expand("results/cupcake/mapping/{sample}.hq.fasta", sample=samples),
+        "results/cupcake/genome.mmi",
+        expand("results/cupcake/mapping/{sample}.sam", sample=samples),
+        expand("results/cupcake/mapping/{sample}.sorted.sam", sample=samples),
+        expand("results/cupcake/mapping/{sample}.sorted.bam", sample=samples),
+        expand("results/cupcake/mapping/{sample}.sorted.bam.bai", sample=samples),
+        # Collapse
+        expand("results/cupcake/collapsed/{sample}/out.collapsed.gff", sample=samples),
+        expand("results/cupcake/collapsed/{sample}/out.collapsed.sorted.gtf.gz", sample=samples),
+        expand("results/cupcake/collapsed/{sample}/out.collapsed.abundance.txt", sample=samples),
+        expand("results/cupcake/collapsed/{sample}/out.collapsed.filtered.gff", sample=samples),
+        expand("results/cupcake/collapsed/{sample}/out.collapsed.filtered.sorted.gtf.gz", sample=samples),
+        # Chain
+        "results/cupcake/chain/all_samples.chained.gff",
+        "results/cupcake/chain/all_samples.chained.sorted.gtf.gz",
+        # Fusion
+        expand("results/cupcake/fusion/{sample}/out.abundance.txt", sample=samples),
+        expand("results/cupcake/fusion.sqanti3/{sample}/out_classification.txt", sample=samples),
         expand("results/cupcake/fusion/{sample}/out.annotated.txt", sample=samples),
 
-# Minimap2
+
+# HQ FASTA
+
+rule get_hq_fasta:
+    input:
+        fsa = "results/isoseq/polished/{sample}.hq.fasta.gz"
+    output:
+        fsa = "results/cupcake/mapping/{sample}.hq.fasta"
+    shell:
+        """
+        gzip -d -c {input.fsa} > {output.fsa}
+        """
+
+# 使用Minimap2进行比对
 
 rule minimap2_index:
     input:
-        fa = "data/genome/genome.fasta"
+        fsa = "data/genome/genome.fasta"
     output:
-        mmi = outdir + "/genome.mmi"
-    threads: 
-        threads
-    shell:
-        """
-        minimap2 -x splice -d {output.mmi} {input.fa}
-        """
-
-rule unzip_hq_fasta:
-    input:
-        fa = "results/isoseq/polished/{sample}.hq.fasta.gz"
-    output:
-        fa = outdir + "/mapping/{sample}.hq.fasta"
-    threads: 
-        4
-    shell:
-        """
-        pigz -p {threads} -d -c {input.fa} > {output.fa}
-        """
-
-rule minimap2_mapping:
-    input:
-        mmi = rules.minimap2_index.output.mmi,
-        fa = rules.unzip_hq_fasta.output.fa
-    output:
-        sam = outdir + "/mapping/{sample}.sam"
-    log:
-        outdir + "/mapping/{sample}.log"
+        mmi = "results/cupcake/genome.mmi"
     threads:
         threads
     shell:
         """
-        minimap2 -ax splice -t {threads} --secondary=no -C5 {input.mmi} {input.fa} > {output.sam} 2> {log}
+        minimap2 -x splice -d {output.mmi} {input.fsa}
+        """
+
+rule minimap2_align:
+    input:
+        mmi = "results/cupcake/genome.mmi",
+        fsa = "results/cupcake/mapping/{sample}.hq.fasta"
+    output:
+        sam = "results/cupcake/mapping/{sample}.sam"
+    log:
+        log = "results/cupcake/mapping/{sample}.log"
+    threads:
+        threads
+    shell:
+        """
+        minimap2 -ax splice -t {threads} --secondary=no -C5 {input.mmi} {input.fsa} > {output.sam} 2> {log}
         """
 
 rule sort_sam:
     input:
-        sam = rules.minimap2_mapping.output.sam
+        sam = "results/cupcake/mapping/{sample}.sam"
     output:
-        sam = outdir + "/mapping/{sample}.sorted.sam"
+        sam = "results/cupcake/mapping/{sample}.sorted.sam"
     shell:
         """
-        sort -k 3,3 -k 4,4n {input.sam} > {output.sam}
+        cat {input.sam} | grep '^@' > {output.sam}
+        cat {input.sam} | grep -v '^@' | sort -k3,3 -k4,4n >> {output.sam}
         """
 
 rule sam_to_bam:
     input:
-        sam = rules.minimap2_mapping.output.sam
+        sam = "results/cupcake/mapping/{sample}.sorted.sam"
     output:
-        tmp = temp(outdir + "/mapping/{sample}.tmp.bam"),
-        bam = outdir + "/mapping/{sample}.sorted.bam",
-        bai = outdir + "/mapping/{sample}.sorted.bam.bai"
+        tmp = temp("results/cupcake/mapping/{sample}.tmp.bam"),
+        bam = "results/cupcake/mapping/{sample}.sorted.bam"
     shell:
         """
         samtools view -b {input.sam} > {output.tmp}
-        bamtools sort -in {output.tmp} -out {output.bam}
-        bamtools index -in {output.bam}
+        samtools sort {output.tmp} > {output.bam}
         """
 
-# Collapse redundant isoforms (has genome)
-
-rule collapse_isoforms_by_sam:
+rule bam_index:
     input:
-        fa = rules.unzip_hq_fasta.output.fa,
-        sam = rules.sort_sam.output.sam
+        bam = "results/cupcake/mapping/{sample}.sorted.bam"
     output:
-        gff1 = outdir + "/collapsed/{sample}/out.collapsed.gff",
-        gff2 = outdir + "/collapsed/{sample}/out.collapsed.gff.unfuzzy",
-        txt1 = outdir + "/collapsed/{sample}/out.collapsed.group.txt",
-        txt2 = outdir + "/collapsed/{sample}/out.collapsed.group.txt.unfuzzy",
-        fasa = outdir + "/collapsed/{sample}/out.collapsed.rep.fa",
-        txt3 = outdir + "/collapsed/{sample}/out.ignored_ids.txt"
-    log:
-        outdir + "/collapsed/{sample}.log"
-    params:
-        prefix = outdir + "/collapsed/{sample}/out"
+        bai = "results/cupcake/mapping/{sample}.sorted.bam.bai"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
-        collapse_isoforms_by_sam.py --input {input.fa}  -s {input.sam} --dun-merge-5-shorter -o {params.prefix} &> {log}
+        samtools index {input.bam}
+        """
+
+# Cupcake
+
+rule collapse:
+    input:
+        fsa = "results/cupcake/mapping/{sample}.hq.fasta", # 序列名称里面包含有FLNC的数量
+        sam = "results/cupcake/mapping/{sample}.sorted.sam"
+    output:
+        out1 = "results/cupcake/collapsed/{sample}/out.collapsed.gff",
+        out2 = "results/cupcake/collapsed/{sample}/out.collapsed.gff.unfuzzy",
+        out3 = "results/cupcake/collapsed/{sample}/out.collapsed.group.txt",
+        out4 = "results/cupcake/collapsed/{sample}/out.collapsed.group.txt.unfuzzy",
+        out5 = "results/cupcake/collapsed/{sample}/out.ignored_ids.txt",
+        out6 = "results/cupcake/collapsed/{sample}/out.collapsed.rep.fa",
+    params:
+        out = "results/cupcake/collapsed/{sample}/out"
+    log:
+        log = "results/cupcake/collapsed/{sample}/out.log"
+    shell:
+        """
+        set +u; source activate SQANTI3.env
+        collapse_isoforms_by_sam.py --input {input.fsa} -s {input.sam} \
+            --dun-merge-5-shorter -o {params.out} &> {log}
         conda deactivate
         """
 
-# Obtain associated count information
-
-rule get_abundance_post_collapse:
+rule compress_collapsed_gff:
     input:
-        gff = outdir + "/collapsed/{sample}/out.collapsed.gff",
+        gff = "results/cupcake/collapsed/{sample}/out.collapsed.gff"
+    output:
+        gtf = "results/cupcake/collapsed/{sample}/out.collapsed.sorted.gtf.gz",
+        tbi = "results/cupcake/collapsed/{sample}/out.collapsed.sorted.gtf.gz.tbi",
+    shell:
+        """
+        bedtools sort -i {input.gff} | bgzip -c > {output.gtf}
+        tabix -p gff {output.gtf}
+        """
+
+rule get_abundance_post_collapse: # 获取每个isoform上的FLNC的数量
+    input:
+        gff = "results/cupcake/collapsed/{sample}/out.collapsed.gff",
         csv = "results/isoseq/polished/{sample}.cluster_report.csv"
     output:
-        txt1 = outdir + "/collapsed/{sample}/out.collapsed.abundance.txt",
-        txt2 = outdir + "/collapsed/{sample}/out.collapsed.read_stat.txt"
+        out1 = "results/cupcake/collapsed/{sample}/out.collapsed.abundance.txt",
+        out2 = "results/cupcake/collapsed/{sample}/out.collapsed.read_stat.txt"
     params:
-        prefix = outdir + "/collapsed/{sample}/out.collapsed"
+        prefix = "results/cupcake/collapsed/{sample}/out.collapsed"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
-        get_abundance_post_collapse.py {params.prefix} {input.csv} > /dev/null 2>&1
+        set +u; source activate SQANTI3.env
+        get_abundance_post_collapse.py {params.prefix} {input.csv} &> /dev/null
         conda deactivate
         """
 
-# Filter collapse results by minimum FL count support
-# Does not filter
-
 # Filter away 5' degraded isoforms
-
 rule filter_away_subset:
     input:
-        gff = outdir + "/collapsed/{sample}/out.collapsed.gff",
-        txt = outdir + "/collapsed/{sample}/out.collapsed.abundance.txt"
+        gff = "results/cupcake/collapsed/{sample}/out.collapsed.gff",
+        abd = "results/cupcake/collapsed/{sample}/out.collapsed.abundance.txt"
     output:
-        gff = outdir + "/collapsed/{sample}/out.collapsed.filtered.gff",
-        fsa = outdir + "/collapsed/{sample}/out.collapsed.filtered.rep.fa",
-        txt = outdir + "/collapsed/{sample}/out.collapsed.filtered.abundance.txt"
+        out1 = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.gff",
+        out2 = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.rep.fa",
+        out3 = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.abundance.txt"
     params:
-        prefix = outdir + "/collapsed/{sample}/out.collapsed"
+        prefix = "results/cupcake/collapsed/{sample}/out.collapsed"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
+        set +u; source activate SQANTI3.env
         filter_away_subset.py {params.prefix}
         conda deactivate
         """
-
-# Chain samples together
-
-rule chain_samples:
+    
+rule compress_filtered_gff:
     input:
-        gff1 = outdir + "/collapsed/Adult_Female/out.collapsed.filtered.gff",
-        gff2 = outdir + "/collapsed/Adult_Male/out.collapsed.filtered.gff",
-        gff3 = outdir + "/collapsed/Juvenile/out.collapsed.filtered.gff",
+        gff = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.gff"
     output:
-        cfg = "cupcake.txt",
-        out = directory(outdir + "/chained")
-    log:
-        outdir + "/chained.log"
-    params:
-        out1 = "all_samples.chained_ids.txt",
-        out2 = "all_samples.chained_count.txt",
-        out3 = "all_samples.chained.gff",
-        out4 = "all_samples.chained.rep.fa"
+        gtf = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.sorted.gtf.gz",
+        tbi = "results/cupcake/collapsed/{sample}/out.collapsed.filtered.sorted.gtf.gz.tbi"
     shell:
-        """( 
-        echo "SAMPLE=Adult_Female;results/cupcake/collapsed/Adult_Female"
-        echo "SAMPLE=Adult_Male;results/cupcake/collapsed/Adult_Male"
-        echo "SAMPLE=Juvenile;results/cupcake/collapsed/Juvenile"
-        echo "GROUP_FILENAME=out.collapsed.group.txt" 
-        echo "GFF_FILENAME=out.collapsed.filtered.gff"
-        echo "COUNT_FILENAME=out.collapsed.filtered.abundance.txt"
-        echo "FASTA_FILENAME=out.collapsed.filtered.rep.fa" ) > {output.cfg}
-        set +u
-        source activate SQANTI3.env
-        chain_samples.py {output.cfg} count_fl &> {log}
-        conda deactivate
-        mkdir -p {output.out}
-        mv {params.out1} {params.out2} {params.out3} {params.out4} {output.out}
+        """
+        bedtools sort -i {input.gff} | bgzip -c > {output.gtf}
+        tabix -p gff {output.gtf}
         """
 
-# rule chained_sqanti3:
-#     input:
-#     output:
-#     log:
-#     shell:
-#         """
+# 使用cupcake合并需要collapsed的其他结果文件，适用范围较小
+rule chain:
+    input:
+        in1 = "results/cupcake/collapsed/Adult_Female/out.collapsed.filtered.gff",
+        in2 = "results/cupcake/collapsed/Adult_Male/out.collapsed.filtered.gff",
+        in3 = "results/cupcake/collapsed/Juvenile/out.collapsed.filtered.gff",
+    output:
+        cfg = "results/cupcake/chain/config.txt",
+        out1 = "results/cupcake/chain/all_samples.chained.gff",
+        out2 = "results/cupcake/chain/all_samples.chained_ids.txt",
+        out3 = "results/cupcake/chain/all_samples.chained_count.txt",
+    log:
+        log = "results/cupcake/chain/chain.log"
+    threads:
+        8
+    shell:
+        """
+        cat > {output.cfg} << EOF
+SAMPLE=Adult_Female;results/cupcake/collapsed/Adult_Female
+SAMPLE=Adult_Male;results/cupcake/collapsed/Adult_Male
+SAMPLE=Juvenile;results/cupcake/collapsed/Juvenile
+GROUP_FILENAME=out.collapsed.group.txt
+GFF_FILENAME=out.collapsed.filtered.gff
+COUNT_FILENAME=out.collapsed.filtered.abundance.txt
+FASTA_FILENAME=out.collapsed.filtered.rep.fa
+EOF
+        set +u; source activate SQANTI3.env
+        chain_samples.py --cpus {threads} {output.cfg} count_fl &> {log}
+        conda deactivate
+        mv all_samples.chained.gff all_samples.chained_ids.txt all_samples.chained_count.txt `dirname {output.cfg}`
+        """
 
-#         """
+rule compress_chain_gff:
+    input:
+        gff = "results/cupcake/chain/all_samples.chained.gff"
+    output:
+        gtf = "results/cupcake/chain/all_samples.chained.sorted.gtf.gz",
+        tbi = "results/cupcake/chain/all_samples.chained.sorted.gtf.gz.tbi"
+    shell:
+        """
+        bedtools sort -i {input.gff} | bgzip -c > {output.gtf}
+        tabix -p gff {output.gtf}
+        """
 
-# Finding fusion genes
+# Fusion gene
 
 rule fusion_finder:
     input:
-        fsa = "results/cupcake/mapping/Adult_Female.hq.fasta",
-        sam = "results/cupcake/mapping/Adult_Female.sorted.sam",
-        csv = "results/isoseq/polished/Adult_Female.cluster_report.csv"
+        fsa = "results/cupcake/mapping/{sample}.hq.fasta",
+        sam = "results/cupcake/mapping/{sample}.sorted.sam",
+        csv = "results/isoseq/polished/{sample}.cluster_report.csv"
     output:
-        gff = "results/cupcake/fusion/{sample}/out.gff",
-        fsa = "results/cupcake/fusion/{sample}/out.rep.fa",
-        ab1 = "results/cupcake/fusion/{sample}/out.abundance.txt",
-        ab2 = "results/cupcake/fusion/{sample}/out.abundance.txt.bak",
-        sta = "results/cupcake/fusion/{sample}/out.read_stat.txt",
-    log:
-        "results/cupcake/fusion/{sample}/out.fusion.log"
+        out1 = "results/cupcake/fusion/{sample}/out.abundance.txt",
+        out2 = "results/cupcake/fusion/{sample}/out.abundance.txt.bak",
+        out3 = "results/cupcake/fusion/{sample}/out.gff",
+        out4 = "results/cupcake/fusion/{sample}/out.group.txt",
+        out5 = "results/cupcake/fusion/{sample}/out.read_stat.txt",
+        out6 = "results/cupcake/fusion/{sample}/out.rep.fa",
     params:
         prefix = "results/cupcake/fusion/{sample}/out"
+    log:
+        log = "results/cupcake/fusion/{sample}/out.fusion.log"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
+        set +u; source activate SQANTI3.env
         fusion_finder.py --input {input.fsa} -s {input.sam} --cluster_report {input.csv} \
             -o {params.prefix} --min_locus_coverage_bp 500 -d 1000000 &> {log}
-        mv {output.ab1} {output.ab2}
-        grep -v '#' {output.ab2} > {output.ab1}
         conda deactivate
+        mv {output.out1} {output.out2}
+        grep -v '#' {output.out2} > {output.out1}
         """
 
-# SQANTI3
-
-rule fusion_sqanti3:
+rule sqanti3_qc_for_fusion:
     input:
-        gff = outdir + "/fusion/{sample}/out.gff",
+        gff = "results/cupcake/fusion/{sample}/out.gff",
         gtf = "data/genome/annotation.gtf",
-        fsa = "data/genome/genome.fasta"
+        fsa = "data/genome/genome.fasta",
     output:
-        directory(outdir + "/fusion.sqanti3/{sample}")
+        out1 = "results/cupcake/fusion.sqanti3/{sample}/out_classification.txt",
+        out2 = "results/cupcake/fusion.sqanti3/{sample}/out_corrected.fasta",
+        out3 = "results/cupcake/fusion.sqanti3/{sample}/out_corrected.genePred",
+        out4 = "results/cupcake/fusion.sqanti3/{sample}/out_corrected.gtf",
+        out5 = "results/cupcake/fusion.sqanti3/{sample}/out_corrected.gtf.cds.gff",
+        out6 = "results/cupcake/fusion.sqanti3/{sample}/out_junctions.txt",
+        out7 = "results/cupcake/fusion.sqanti3/{sample}/out.params.txt",
+        out8 = "results/cupcake/fusion.sqanti3/{sample}/out_sqanti_report.pdf",
+        out9 = "results/cupcake/fusion.sqanti3/{sample}/refAnnotation_out.genePred"
     log:
-        outdir + "/fusion.sqanti3/{sample}.log"
+        log = "results/cupcake/fusion.sqanti3/{sample}.log"
+    params:
+        prefix = "results/cupcake/fusion.sqanti3/{sample}"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
-        mkdir -p {output}
-        ~/software/SQANTI3/sqanti3_qc.py --gtf {input.gff} {input.gtf} {input.fsa} --is_fusion -d {output} &> {log}
+        set +u; source activate SQANTI3.env
+        ~/software/SQANTI3/sqanti3_qc.py --gtf {input.gff} {input.gtf} {input.fsa} \
+            --is_fusion -d {params.prefix} &> {log}
         conda deactivate
         """
 
 rule fusion_collate_info:
     input:
-        gno = "data/genome/genome.fasta",
-        gff = "results/cupcake/fusion/{sample}/out.gff",
-        fsa = "results/cupcake/fusion/{sample}/out.rep.fa",
-        txt = "results/cupcake/fusion/{sample}/out.abundance.txt",
-        sqc = "results/cupcake/fusion.sqanti3/{sample}"
+        in1 = "results/cupcake/fusion.sqanti3/{sample}/out_classification.txt",
+        in2 = "results/cupcake/fusion.sqanti3/{sample}/refAnnotation_out.genePred",
+        fsa = "data/genome/genome.fasta"
     output:
-        txt = "results/cupcake/fusion/{sample}/out.annotated.txt"
+        out1 = "results/cupcake/fusion/{sample}/out.annotated.txt",
+        out2 = "results/cupcake/fusion/{sample}/out.annotated_ignored.txt"
     params:
-        prefix = "results/cupcake/fusion/{sample}/out",
-        sqc = "results/cupcake/fusion.sqanti3/{sample}/out_classification.txt",
-        gpr = "results/cupcake/fusion.sqanti3/{sample}/refAnnotation_out.genePred"
+        prefix = "results/cupcake/fusion/{sample}/out"
     shell:
         """
-        set +u
-        source activate SQANTI3.env
-        fusion_collate_info.py {params.prefix} {params.sqc} {params.gpr} --genome {input.gno}
+        set +u; source activate SQANTI3.env
+        fusion_collate_info.py {params.prefix} {input.in1} {input.in2} --genome {input.fsa}
         conda deactivate
         """
-        
-# Common 
 
-rule pbindex:
-    input:
-        "{prefix}.bam"
-    output:
-        "{prefix}.bam.pbi"
-    shell:
-        """
-        pbindex {input}
-        """
-
-rule bam_stats:
-    input:
-        "{prefix}.bam"
-    output:
-        "{prefix}.stats"
-    shell:
-        """
-        bamtools stats -in {input} > {output}
-        """

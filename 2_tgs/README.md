@@ -32,3 +32,17 @@ fusion_finder.py --input results/cupcake/mapping/Adult_Female.hq.fastq --fq -s r
 fusion_collate_info.py output.fusion output.fusion_classification.txt \
       refAnnotation_output.fusion.genePred \
       --genome hg38.fa
+
+
+(py27) chenzonggui@luolab:~/4_cwork/2_tgs/results/tama$ python ~/software/tama/tama_go/filter_transcript_models/tama_remove_polya_models_levels.py -b merged/tama_merged.bed -f filelist.txt -o output -r R
+
+
+# BLASTP 2.9.0+
+# Query: lcl|ORF1_TU2:393:509 unnamed protein product
+# Database: ../ncbi/swissprot/swissprot
+# Fields: query acc.ver, subject acc.ver, % identity, alignment length, mismatches, gap opens, q. start, q. end, s. start, s. end, evalue, bit score
+# 7 hits found
+
+cat annotation.gtf | awk '$3=="transcript"' | head | sed -e 's/^.*gene_id "\(\S*\)";.*/\1/g'
+
+cat annotation.gtf | awk '$3=="transcript"' | sed -e 's/^.*gene_id "\(\S*\)";.*/\1/g' | sort | uniq -c | awk '{print $1}' | sort | uniq -c | sort -k2,2n | awk '{print $2"\t"$1}'
