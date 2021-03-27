@@ -3,7 +3,7 @@ configfile: "config.yaml"
 samples = config["samples"]
 indir = "data/datasets"
 outdir = "results/prepare"
-reads = ["1", "2"]
+reads = ["R1", "R2"]
 
 rule all:
     input:
@@ -13,7 +13,7 @@ rule all:
 
 rule fastqc:
     input:
-        indir + "/{name}.fq.gz"
+        indir + "/{name}.fastq.gz"
     output:
         outdir + "/fastqc/{name}_fastqc.html"
     log:

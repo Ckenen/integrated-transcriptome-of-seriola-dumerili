@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Session genome="/home/chenzonggui/4_cwork/1_ngs/data/Sdu_1.0/GCF_002260705.1_Sdu_1.0_genomic.fa" hasGeneTrack="false" hasSequenceTrack="true" locus="NW_019174258.1:3988996-3991973" version="8">
+    <Resources>
+        <Resource path="data/Sdu_1.0/GCF_002260705.1_Sdu_1.0_genomic.bed.gz"/>
+        <Resource path="data/Sdu_1.0/GCF_002260705.1_Sdu_1.0_genomic.gtf.gz"/>
+    </Resources>
+    <Panel height="1645" name="FeaturePanel" width="1061">
+        <Track attributeKey="Reference sequence" clazz="org.broad.igv.track.SequenceTrack" fontSize="10" id="Reference sequence" name="Reference sequence" visible="true"/>
+        <Track attributeKey="GCF_002260705.1_Sdu_1.0_genomic.gtf.gz" clazz="org.broad.igv.track.FeatureTrack" color="0,0,178" displayMode="EXPANDED" featureVisibilityWindow="1522097" fontSize="10" id="/home/chenzonggui/data/gaotishi/1_ngs/data/Sdu_1.0/GCF_002260705.1_Sdu_1.0_genomic.gtf.gz" name="GCF_002260705.1_Sdu_1.0_genomic.gtf.gz" visible="true"/>
+        <Track attributeKey="GCF_002260705.1_Sdu_1.0_genomic.bed.gz" clazz="org.broad.igv.track.FeatureTrack" color="0,0,178" displayMode="EXPANDED" featureVisibilityWindow="67744206" fontSize="10" id="/home/chenzonggui/data/gaotishi/1_ngs/data/Sdu_1.0/GCF_002260705.1_Sdu_1.0_genomic.bed.gz" name="GCF_002260705.1_Sdu_1.0_genomic.bed.gz" visible="true"/>
+    </Panel>
+    <PanelLayout dividerFractions="0.0036231884057971015"/>
+    <HiddenAttributes>
+        <Attribute name="DATA FILE"/>
+        <Attribute name="DATA TYPE"/>
+        <Attribute name="NAME"/>
+    </HiddenAttributes>
+</Session>

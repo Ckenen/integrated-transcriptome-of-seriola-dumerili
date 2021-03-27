@@ -13,8 +13,8 @@ rule all:
         expand(outdir + "/mapped.2nd/{sample}", sample=samples),
         expand(outdir + "/filtered/{sample}.bam", sample=samples),
         expand(outdir + "/filtered/{sample}.bam.bai", sample=samples),
-        # expand(outdir + "/filtered/{sample}.infer.txt", sample=samples),
-        # expand(outdir + "/filtered/{sample}.stats", sample=samples),
+        expand(outdir + "/filtered/{sample}.infer.txt", sample=samples),
+        expand(outdir + "/filtered/{sample}.stats", sample=samples),
         # expand(outdir + "/filtered/{sample}.fam", sample=samples),
         # expand(outdir + "/filtered/{sample}.bw", sample=samples),
         # expand(outdir + "/uniq/{sample}.bam", sample=samples),
@@ -45,8 +45,8 @@ rule star_index:
 
 rule star_mapping_1st:
     input:
-        fq1 = indir + "/{sample}_1.fq.gz",
-        fq2 = indir + "/{sample}_2.fq.gz",
+        fq1 = indir + "/{sample}_R1.fastq.gz",
+        fq2 = indir + "/{sample}_R2.fastq.gz",
         idx = rules.star_index.output
     output:
         directory(outdir + "/mapped.1st/{sample}")
@@ -64,7 +64,7 @@ rule star_mapping_1st:
             --genomeDir {input.idx} --readFilesIn {input.fq1} {input.fq2} &> {log}
         """
 
-rule mergeSpliceJunction:
+rule merge_splice_junction:
     input:
         tabs = expand(outdir + "/mapped.1st/{sample}", sample=samples)
     output:
@@ -76,10 +76,10 @@ rule mergeSpliceJunction:
 
 rule star_mapping_2nd:
     input:
-        fq1 = indir + "/{sample}_1.fq.gz",
-        fq2 = indir + "/{sample}_2.fq.gz", 
+        fq1 = indir + "/{sample}_R1.fastq.gz",
+        fq2 = indir + "/{sample}_R2.fastq.gz", 
         idx = outdir + "/star_index",
-        spl = rules.mergeSpliceJunction.output
+        spl = rules.merge_splice_junction.output
     output:
         directory(outdir + "/mapped.2nd/{sample}")
     log:

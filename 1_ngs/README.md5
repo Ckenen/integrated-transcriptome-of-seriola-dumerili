@@ -29,6 +29,7 @@ $ cpat.py -r /database/hg19.fa -g Human_test_coding_mRNA_hg19.bed -d ../dat/Huma
 make_logitModel.py  -x GTS_Hexamer.tsv -c cpat.protein_coding.cds.fasta -n cpat.lncRNA.fasta -o GTS
 cpat.py -r data/genome/genome.fasta -g results/taco/stringtie/assembly.bed -d ../ncbi/Sdu_1.0/GTS.logit.RData -x ../ncbi/Sdu_1.0/GTS_Hexamer.tsv  -o cpat_out
 
+
 dmrt1 (dmy)
 
 Type: transcript

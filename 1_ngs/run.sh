@@ -9,3 +9,13 @@ for smk in 2_SnakeMapping.smk  3_SnakeExpression.smk  3_SnakeExpressionUniq.smk;
 done
 
 cpat.py -r data/genome/genome.fasta -g results/taco/stringtie/assembly.bed -d ../ncbi/Sdu_1.0/GTS.logit.RData -x ../ncbi/Sdu_1.0/GTS_Hexamer.tsv  -o cpat_out
+
+
+
+ORFfinder -in input.fasta -strand plus -out orf_finder_out.orf.fasta
+
+head -n 1000 merged/assembly.bed > orf_finder.test.bed
+bedtools getfasta -s -split -name -fi ../../../data/genome/genome.fasta -bed orf_finder.test.bed | sed 's/([0-9.+-]*)//g' | sed 's/G[0-9]*|//g' > orf_finder.test.fasta
+ORFfinder -in orf_finder.test.fasta -strand plus -out orf_finder_out.fasta
+
+blastp -num_threads 8 

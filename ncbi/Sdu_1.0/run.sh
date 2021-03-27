@@ -15,11 +15,16 @@ bgzip -c GCF_002260705.1_Sdu_1.0_genomic.sorted.gff > GCF_002260705.1_Sdu_1.0_ge
 tabix -p gff GCF_002260705.1_Sdu_1.0_genomic.sorted.gff.gz
 
 # GTF
-./gffToGTF.py GCF_002260705.1_Sdu_1.0_genomic.sorted.gff GCF_002260705.1_Sdu_1.0_genomic.temp.gtf
+# ./gffToGTF.py GCF_002260705.1_Sdu_1.0_genomic.sorted.gff GCF_002260705.1_Sdu_1.0_genomic.temp.gtf <- deprecated
+# Run GFF to GTF in gffToGTF.ipynb
 bedtools sort -i GCF_002260705.1_Sdu_1.0_genomic.temp.gtf > GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf
 rm GCF_002260705.1_Sdu_1.0_genomic.temp.gtf
 bgzip -c GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf > GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf.gz
 tabix -p gff GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf.gz
+# Remove gene feature. Required!
+cat GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf | grep -v '#' | awk '$3!="gene"' > GCF_002260705.1_Sdu_1.0_genomic.sorted.filtered.gtf
+bgzip -c GCF_002260705.1_Sdu_1.0_genomic.sorted.filtered.gtf > GCF_002260705.1_Sdu_1.0_genomic.sorted.filtered.gtf.gz
+tabix -p gff GCF_002260705.1_Sdu_1.0_genomic.sorted.filtered.gtf.gz
 
 # BED
 ./gtfToBed.py GCF_002260705.1_Sdu_1.0_genomic.sorted.gtf > GCF_002260705.1_Sdu_1.0_genomic.bed

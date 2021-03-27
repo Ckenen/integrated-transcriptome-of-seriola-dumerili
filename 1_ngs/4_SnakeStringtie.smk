@@ -7,12 +7,17 @@ outdir = "results/stringtie"
 
 rule all:
     input:
+        # StringTie
         expand(outdir + "/round1/{sample}.gtf", sample=samples),
         outdir + "/merged/merged.gtf",
-        outdir + "/merged/merged.sorted.gtf.gz",
+        outdir + "/merged/merged.sorted.gtf.gz",    # final output
         expand(outdir + "/round2/{sample}/gene_abund.tab", sample=samples),
+        # TACO
         outdir + "/taco/merged",
-        # outdir + "/taco/assembly.sorted.gtf.gz"
+        outdir + "/taco/assembly.sorted.gtf.gz",    # final output
+        # outdir + "/taco/cpat",
+        # outdir + "/taco/orf_finder/orf.fasta",
+        # outdir + "/taco/blastp/blastp.tsv"
 
 
 # StringTie 
@@ -33,22 +38,27 @@ rule strintie_round1:
         8
     shell:
         """
-        stringtie {input.bam} --rf -G {input.gtf} -p {threads} -o {output.gtf} -l {wildcards.sample} &> {log}
+        stringtie {input.bam} --rf -G {input.gtf} -p {threads} \
+            -o {output.gtf} -l {wildcards.sample} &> {log}
         """
 
+# StringTie合并的结果里面有一些feature是没有strand信息的（极少部分）
+# 这将导致下游分析报错，所以要过滤掉这些feature。
 rule strintie_merge:
     input:
         gtfs = expand(rules.strintie_round1.output.gtf, sample=samples),
-        gtf = "data/genome/annotation.gtf"
+        gtf = "data/genome/annotation.gtf",
     output:
         txt = outdir + "/merged/merged.gtf.list",
+        tmp = temp(outdir + "/merged/merged.tmp.gtf"),
         gtf = outdir + "/merged/merged.gtf"
     log:
         outdir + "/merged/merged.log"
     shell:
         """(
         for gtf in {input.gtfs}; do echo $gtf; done > {output.txt}
-        stringtie --merge -G {input.gtf} -o {output.gtf} -l merge {output.txt} ) &> {log}
+        stringtie --merge -G {input.gtf} -o {output.tmp} -l StringTie {output.txt} 
+        cat {output.tmp} | awk '$7!="."' > {output.gtf} ) &> {log}
         """
 
 rule stringtie_round2:
@@ -96,9 +106,78 @@ rule taco_merge:
             --filter-min-expr 0.5 --isoform-frac 0.05 {output.txt} &> {log}
         """
 
+rule taco_gtf_index:
+    input:
+        outdir + "/taco/merged"
+    output:
+        gtf = outdir + "/taco/assembly.sorted.gtf.gz",
+        tbi = outdir + "/taco/assembly.sorted.gtf.gz.tbi"
+    params:
+        gtf = outdir + "/taco/merged/assembly.gtf"
+    shell:
+        """
+        bedtools sort -header -i {params.gtf} | bgzip -c > {output.gtf}
+        tabix -p gff {output.gtf}
+        """
+
+rule taco_cpat:
+    input:
+        fsa = "data/genome/genome.fasta",
+        rda = "../ncbi/Sdu_1.0/GTS.logit.RData",
+        tsv = "../ncbi/Sdu_1.0/GTS_Hexamer.tsv",
+        tac = outdir + "/taco/merged"
+    output:
+        directory(outdir + "/taco/cpat")
+    log:
+        outdir + "/taco/cpat.log"
+    params:
+        bed = outdir + "/taco/merged/assembly.bed"
+    shell:
+        """
+        mkdir {output}
+        cpat.py -r {input.fsa} -g {params.bed} -d {input.rda} -x {input.tsv} -o {output}/out &> {log}
+        """
+
+rule taco_orf_finder:
+    input:
+        fsa = "data/genome/genome.fasta",
+        tac = outdir + "/taco/merged"
+    output:
+        seq = outdir + "/taco/orf_finder/seq.fasta",
+        orf = outdir + "/taco/orf_finder/orf.fasta"
+    log:
+        outdir + "/taco/orf_finder/orf.log"
+    params:
+        bed = outdir + "/taco/merged/assembly.bed"
+    shell:
+        """
+        bedtools getfasta -s -split -name -fi {input.fsa} -bed {params.bed} | sed 's/([0-9.+-]*)//g' | sed 's/G[0-9]*|//g' > {output.seq}
+        ORFfinder -in {output.seq} -strand plus -out {output.orf} &> {log}
+        """
+
+rule taco_blastp:
+    input:
+        orf = outdir + "/taco/orf_finder/orf.fasta",
+    output:
+        tsv = outdir + "/taco/blastp/blastp.tsv"
+    log:
+        outdir + "/taco/blastp/blastp.log"
+    params:
+        pdb = "../ncbi/swissprot/swissprot",
+        # pdb = "../ncbi/protein/nr",
+        max_target_seqs = 6,
+        evalue = "1e-6"
+    threads:
+        80
+    shell:
+        """
+        nice blastp -db {params.pdb} -outfmt 6 -evalue {params.evalue} -num_threads {threads} \
+            -max_target_seqs {params.max_target_seqs} -query {input.orf} -out {output} &> {log}
+        """
+
 # Common rules
 
-rule gtf_index:
+rule compress_gtf:
     input:
         gtf = "{prefix}.gtf"
     output:

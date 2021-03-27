@@ -1,0 +1,8 @@
+/ncbi
+*/data
+*/.ipynb_checkpoints
+*/.snakemake
+/.vscode
+*/results
+*/trash
+/3_analysis
