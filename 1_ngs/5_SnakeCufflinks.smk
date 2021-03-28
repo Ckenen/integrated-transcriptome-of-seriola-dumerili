@@ -9,11 +9,13 @@ outdir = "results/cufflinks"
 rule all:
     input:
         expand(outdir + "/clout/{sample}", sample=samples),
+        expand(outdir + "/postlink/{sample}.gtf", sample=samples),
         "results/cufflinks/merged",
         outdir + "/taco/merged"
 
 
-# Cufflinks
+# Cufflinks：主要的输出结果是transcripts.gtf，里面有一些feature是没有strand信息的（极少数）
+# 输出的feature的范围包括soft-clip？这将导致start或者end范围越界
 
 rule cufflinks:
     input:
@@ -31,11 +33,32 @@ rule cufflinks:
             -L {wildcards.sample} {input.bam} &> {log}
         """
 
+# 由于cufflinks的输出有一些问题，例如越界，无strand信息等，所以添加这一步，过滤掉这些问题
+rule postlinks:
+    input:
+        gsz = "data/genome/genome.sizes",
+        gtf = outdir + "/clout/{sample}"
+    output:
+        gtf1 = outdir + "/postlink/{sample}.gtf",
+        gtf2 = outdir + "/postlink/{sample}.sorted.gtf.gz",
+        tbi = outdir + "/postlink/{sample}.sorted.gtf.gz.tbi"
+    params:
+        gtf = outdir + "/clout/{sample}/transcripts.gtf"
+    log:
+        log = outdir + "/postlink/{sample}.log"
+    shell:
+        """(
+        ./scripts/post_links.py {input.gsz} {params.gtf} > {output.gtf1}
+        bedtools sort -i {output.gtf1} | bgzip -c > {output.gtf2}
+        tabix -p gff {output.gtf2} ) &> {log}
+        """
+
 rule cuffmerge:
     input:
         gtf = "data/genome/annotation.gtf",
         fsa = "data/genome/genome.fasta",
-        lis = [outdir + "/clout/{sample}".format(sample=sample) for sample in samples]
+        # lis = [outdir + "/clout/{sample}".format(sample=sample) for sample in samples]
+        lis = [outdir + "/postlink/{sample}.gtf".format(sample=sample) for sample in samples]
     output:
         txt = outdir + "/merged.gtf.txt",
         out = directory(outdir + "/merged")
@@ -45,7 +68,7 @@ rule cuffmerge:
         threads
     shell:
         """
-        for f in {input.lis}; do echo "$f/transcripts.gtf"; done > {output.txt}
+        for f in {input.lis}; do echo $f; done > {output.txt}
         cuffmerge -g {input.gtf} -s {input.fsa} -o {output.out} -p {threads} {output.txt}  &> {log}
         """
         
@@ -53,7 +76,7 @@ rule cuffmerge:
 
 rule taco_merge:
     input:
-        gtfs = expand(rules.cufflinks.output, sample=samples)
+        gtfs = [outdir + "/postlink/{sample}.gtf".format(sample=sample) for sample in samples]
     output:
         txt = outdir + "/taco/merged.gtf.txt",
         out = directory(outdir + "/taco/merged")
@@ -66,7 +89,7 @@ rule taco_merge:
         threads
     shell:
         """
-        for f in {input.gtfs}; do echo "$f/transcripts.gtf"; done > {output.txt}
+        for f in {input.gtfs}; do echo $f; done > {output.txt}
         taco_run -p {threads} -o {output.out} --gtf-expr-attr FPKM --filter-min-length 200 \
             --filter-min-expr 0.5 --isoform-frac 0.05 {output.txt} &> {log}
         """
