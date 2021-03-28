@@ -11,7 +11,9 @@ rule all:
         expand(outdir + "/clout/{sample}", sample=samples),
         expand(outdir + "/postlink/{sample}.gtf", sample=samples),
         "results/cufflinks/merged",
-        outdir + "/taco/merged"
+        outdir + "/merged.filtered.gtf",
+        outdir + "/taco/merged",
+        outdir + "/taco/assembly.sorted.gtf.gz",
 
 
 # Cufflinks：主要的输出结果是transcripts.gtf，里面有一些feature是没有strand信息的（极少数）
@@ -57,7 +59,6 @@ rule cuffmerge:
     input:
         gtf = "data/genome/annotation.gtf",
         fsa = "data/genome/genome.fasta",
-        # lis = [outdir + "/clout/{sample}".format(sample=sample) for sample in samples]
         lis = [outdir + "/postlink/{sample}.gtf".format(sample=sample) for sample in samples]
     output:
         txt = outdir + "/merged.gtf.txt",
@@ -70,6 +71,20 @@ rule cuffmerge:
         """
         for f in {input.lis}; do echo $f; done > {output.txt}
         cuffmerge -g {input.gtf} -s {input.fsa} -o {output.out} -p {threads} {output.txt}  &> {log}
+        """
+
+rule post_cuffmerge:
+    input:
+        outdir + "/merged"
+    output:
+        out1 = outdir + "/merged.filtered.gtf",
+        out2 = outdir + "/merged.filtered.sorted.gtf.gz",
+        out3 = outdir + "/merged.filtered.sorted.gtf.gz.tbi"
+    shell:
+        """
+        awk '$7!="."' {input}/merged.gtf > {output.out1}
+        bedtools sort -i {output.out1} | bgzip -c > {output.out2}
+        tabix -p gff {output.out2}
         """
         
 # TACO
@@ -92,4 +107,18 @@ rule taco_merge:
         for f in {input.gtfs}; do echo $f; done > {output.txt}
         taco_run -p {threads} -o {output.out} --gtf-expr-attr FPKM --filter-min-length 200 \
             --filter-min-expr 0.5 --isoform-frac 0.05 {output.txt} &> {log}
+        """
+
+rule taco_gtf_index:
+    input:
+        outdir + "/taco/merged"
+    output:
+        gtf = outdir + "/taco/assembly.sorted.gtf.gz",
+        tbi = outdir + "/taco/assembly.sorted.gtf.gz.tbi"
+    params:
+        gtf = outdir + "/taco/merged/assembly.gtf"
+    shell:
+        """
+        bedtools sort -header -i {params.gtf} | bgzip -c > {output.gtf}
+        tabix -p gff {output.gtf}
         """
