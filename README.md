@@ -1,37 +1,26 @@
-# gts_trans
+# Transcriptome profiling of Greater Amberjack
 
-#### 介绍
-Assembly transcriptome of GTS from RNA-seq and Iso-seq.
+This repository contains the analysis pipeline of RNA-seq and Iso-seq, as well as some previously published datasets. Different analyses are stored in different directories.
 
-#### 软件架构
-软件架构说明
+## 1_RNA-seq: the analysis pipeline of RNA-seq
 
 
-#### 安装教程
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 使用说明
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### 参与贡献
-
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+## 2_Iso-seq: the analysis pipeline of Iso-seq
 
 
-#### 特技
+## 3_Integrated: tntegrate assemblies from RNA-seq and Iso-seq
 
-1.  使用 Readme\_XXX.md 来支持不同的语言，例如 Readme\_en.md, Readme\_zh.md
-2.  Gitee 官方博客 [blog.gitee.com](https://blog.gitee.com)
-3.  你可以 [https://gitee.com/explore](https://gitee.com/explore) 这个地址来了解 Gitee 上的优秀开源项目
-4.  [GVP](https://gitee.com/gvp) 全称是 Gitee 最有价值开源项目，是综合评定出的优秀开源项目
-5.  Gitee 官方提供的使用手册 [https://gitee.com/help](https://gitee.com/help)
-6.  Gitee 封面人物是一档用来展示 Gitee 会员风采的栏目 [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
+## 4_DDBJ_transcripts: transcripts
+
+## 5_RNA-seq_gonad_muscle: the analysis pipleline of RNA-seq in gonad and muscle
+
+## 6_Conservation_score:
+
+## 7
+
+## 8_WGS: whole genome sequencing of 20 Grater Amberjack
+
+Detected SNPs
+
+## 9_RNA-seq_gill:
+
