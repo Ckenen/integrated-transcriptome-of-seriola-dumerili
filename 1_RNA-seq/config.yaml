@@ -1,0 +1,82 @@
+samples:
+ - Ju_Br_Mi_1
+ - Ju_Br_Mi_2
+# - Ad_Br_Ma_1
+ - Ad_Br_Ma_2
+# - Ad_Br_Ma_3
+ - Ad_Br_Ma_4
+# - Ad_Br_Fe_1
+# - Ad_Br_Fe_2
+ - Ad_Br_Fe_3
+ - Ad_Br_Fe_4
+ - Ju_Ey_Mi_1
+ - Ju_Ey_Mi_2
+# - Ad_Ey_Ma_1
+ - Ad_Ey_Ma_2
+ - Ad_Ey_Ma_3
+# - Ad_Ey_Fe_1 ?
+# - Ad_Ey_Fe_2
+ - Ad_Ey_Fe_3
+ - Ad_Ey_Fe_4
+ - Ju_Gi_Mi_1
+ - Ju_Gi_Mi_2
+ - Ad_Gi_Ma_1
+ - Ad_Gi_Ma_2
+ - Ad_Gi_Fe_1
+ - Ad_Gi_Fe_2
+ - Ju_Go_Mi_1
+ - Ju_Go_Mi_2
+# - Ad_Go_Ma_1
+ - Ad_Go_Ma_2
+ - Ad_Go_Ma_3
+ - Ad_Go_Fe_1
+ - Ad_Go_Fe_2
+ - Ju_He_Mi_1
+ - Ju_He_Mi_2
+ - Ad_He_Ma_1
+ - Ad_He_Ma_2
+ - Ad_He_Fe_1
+ - Ad_He_Fe_2
+ - Ju_Ki_Mi_1
+ - Ju_Ki_Mi_2
+ - Ad_Ki_Ma_1
+ - Ad_Ki_Ma_2
+ - Ad_Ki_Fe_1
+ - Ad_Ki_Fe_2
+ - Ju_Li_Mi_1
+ - Ju_Li_Mi_2
+ - Ad_Li_Ma_1
+ - Ad_Li_Ma_2
+ - Ad_Li_Fe_1
+ - Ad_Li_Fe_2
+ - Ju_Mu_Mi_1
+ - Ju_Mu_Mi_2
+ - Ad_Mu_Ma_1
+ - Ad_Mu_Ma_2
+ - Ad_Mu_Fe_1
+ - Ad_Mu_Fe_2
+ - Ju_In_Mi_1
+ - Ju_In_Mi_2
+ - Ad_In_Ma_1
+ - Ad_In_Ma_2
+ - Ad_In_Fe_1
+ - Ad_In_Fe_2
+ - Ad_Pi_Ma_1
+ - Ad_Pi_Ma_2
+ - Ad_Pi_Fe_1
+ - Ad_Pi_Fe_2
+ - Ad_Sp_Ma_1
+ - Ad_Sp_Ma_2
+ - Ad_Sp_Fe_1
+ - Ad_Sp_Fe_2
+ - Ad_St_Ma_1
+ - Ad_St_Ma_2
+ - Ad_St_Fe_1
+ - Ad_St_Fe_2
+
+threads: 20
+genome: ../common/ncbi/serDum.ncbi.fasta
+genome_sizes: ../common/ncbi/serDum.ncbi.sizes
+ncbi: ../common/ncbi/serDum.ncbi.optimized.gtf.gz
+ensembl: ../common/ncbi/serDum.ensembl.optimized.gtf.gz
+ncbi_bed: ../common/ncbi/serDum.ncbi.optimized.bed.gz

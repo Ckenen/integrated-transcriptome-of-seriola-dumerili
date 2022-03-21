@@ -1,8 +1,0 @@
-SAMPLE=Adult_Female;results/cupcake/collapsed/Adult_Female
-SAMPLE=Adult_Male;results/cupcake/collapsed/Adult_Male
-SAMPLE=Juvenile;results/cupcake/collapsed/Juvenile
-
-GROUP_FILENAME=out.collapsed.group.txt
-GFF_FILENAME=out.collapsed.filtered.gff
-COUNT_FILENAME=out.collapsed.filtered.abundance.txt
-FASTQ_FILENAME=out.collapsed.filtered.rep.fq
