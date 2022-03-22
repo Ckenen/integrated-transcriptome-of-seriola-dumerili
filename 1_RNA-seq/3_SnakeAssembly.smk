@@ -7,7 +7,6 @@ outdir = "results/assembly"
 rule all:
     input:
         expand(outdir + "/stringtie/assemblied/{sample}.gtf", sample=samples),
-        # outdir + "/stringtie/merged.gtf.gz",
         outdir + "/taco/stringtie.gtf.gz"
 
 # StringTie
@@ -24,27 +23,11 @@ rule stringtie:
         stringtie {input.bam} --rf --conservative -p {threads} -o {output.gtf} -l {wildcards.sample}
         """
 
-# rule stringtie_merge:
-#     input:
-#         gtfs = expand(rules.stringtie.output.gtf, sample=samples),
-#     output:
-#         txt = temp(outdir + "/stringtie/merged.filelist.txt"),
-#         tmp = temp(outdir + "/stringtie/merged.gtf"),
-#         gtf = outdir + "/stringtie/merged.gtf.gz",
-#         tbi = outdir + "/stringtie/merged.gtf.gz.tbi"
-#     shell:
-#         """
-#         for gtf in {input.gtfs}; do echo $gtf; done > {output.txt}
-#         stringtie --merge -m 200 -c 2 -s 5 -F 1.0 -T 1.0 -f 0.05 -o {output.tmp} -l StringTie {output.txt}
-#         awk '$7!="."' {output.tmp} | bedtools sort -i - | bgzip -c > {output.gtf}
-#         tabix -p gff {output.gtf}
-#         """
-
 # TACO
 
 rule stringtie_taco:
     input:
-        gtfs = expand(rules.stringtie.output.gtf, sample=samples) # 输入的是GTF文件
+        gtfs = expand(rules.stringtie.output.gtf, sample=samples)
     output:
         txt = temp(outdir + "/taco/stringtie.filelist.txt"),
         out = directory(outdir + "/taco/stringtie"),

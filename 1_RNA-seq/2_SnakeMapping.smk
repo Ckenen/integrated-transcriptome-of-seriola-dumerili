@@ -20,7 +20,7 @@ rule all:
         expand(outdir + "/filtered/{sample}_mt.bam.bai", sample=samples),
         expand(outdir + "/filtered/{sample}_mt.flagstat", sample=samples),
 
-        expand(outdir + "/infered/{sample}.txt", sample=samples),
+        # expand(outdir + "/infered/{sample}.txt", sample=samples),
         
         expand(outdir + "/markdup/{sample}.bam", sample=samples),
         expand(outdir + "/markdup/{sample}.bam.bai", sample=samples),
@@ -131,29 +131,29 @@ rule filter_alignment:
 
 # Infer experiment
 
-rule uncompress_bed:
-    input:
-        bed = config["ncbi_bed"]
-    output:
-        bed = outdir + "/infered/ref.bed"
-    shell:
-        """
-        gzip -d -c {input.bed} > {output.bed}
-        """
+# rule uncompress_bed:
+#     input:
+#         bed = config["ncbi_bed"]
+#     output:
+#         bed = outdir + "/infered/ref.bed"
+#     shell:
+#         """
+#         gzip -d -c {input.bed} > {output.bed}
+#         """
 
-rule infer_experiment:
-    input:
-        bam = rules.filter_alignment.output.bam,
-        bai = rules.filter_alignment.output.bam + ".bai",
-        bed = rules.uncompress_bed.output.bed
-    output:
-        txt = outdir + "/infered/{sample}.txt"
-    shell:
-        """
-        set +u; source activate py27
-        infer_experiment.py -i {input.bam} -r {input.bed} > {output.txt} 2> /dev/null
-        conda deactivate 
-        """
+# rule infer_experiment:
+#     input:
+#         bam = rules.filter_alignment.output.bam,
+#         bai = rules.filter_alignment.output.bam + ".bai",
+#         bed = rules.uncompress_bed.output.bed
+#     output:
+#         txt = outdir + "/infered/{sample}.txt"
+#     shell:
+#         """
+#         set +u; source activate py27
+#         infer_experiment.py -i {input.bam} -r {input.bed} > {output.txt} 2> /dev/null
+#         conda deactivate 
+#         """
 
 # MarkDup
 
@@ -196,9 +196,6 @@ rule remove_duplicate:
         """
         samtools view -F 1024 -b -@ {threads} -o {output.bam} {input.bam}
         """
-        # """
-        # ./scripts/mapping/remove_duplicates.py {input.bam} {output.bam}
-        # """
 
 # Common rules
 
@@ -280,9 +277,6 @@ rule get_chrom_read_count:
         """
         ./scripts/stat_chrom_read_count.py {input.bam} > {output.tsv}
         """
-        # """
-        # samtools view {input.bam} | awk '{{print $3}}' | sort | uniq -c | awk '{{print $2"\\t"$1}}' > {output.txt}
-        # """
 
 rule infer_fragment_length:
     input:

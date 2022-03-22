@@ -10,10 +10,13 @@ outdir = "results/assembly"
 
 rule all:
     input:
-        expand(outdir + "/cupcake.collapsed/{sample}.gtf.gz", sample=samples),
-        expand(outdir + "/cupcake.collapsed/{sample}.filtered.gtf.gz", sample=samples),
-        outdir + "/cupcake.chain/all_samples.chained.gtf.gz",
-        outdir + "/cupcake.chain/all_samples.chained.corrected.gtf.gz",
+        expand(outdir + "/cupcake/collapsed/{sample}/out.collapsed.gff", sample=samples),
+        expand(outdir + "/cupcake/collapsed/{sample}/out.collapsed.abundance.txt", sample=samples),
+        expand(outdir + "/cupcake/collapsed/{sample}/out.collapsed.filtered.gff", sample=samples),
+        outdir + "/cupcake/chain/all_samples.chained.gff",
+        # expand(outdir + "/cupcake.collapsed/{sample}.filtered.gtf.gz", sample=samples),
+        # outdir + "/cupcake.chain/all_samples.chained.gtf.gz",
+        outdir + "/cupcake/chain/all_samples.chained.corrected.gtf.gz",
         outdir + "/cupcake.gtf.gz",
         # expand(outdir + "cupcake.fusion/{sample}/out.gff", sample=samples),
         # expand(outdir + "cupcake.fusion.sqanti3/{sample}/out_classification.txt", sample=samples),
@@ -24,114 +27,110 @@ rule all:
 rule collapse:
     input:
         fasta = "results/isoseq/polished/{sample}.hq.fasta.gz", # 序列名称里面包含有FLNC的数量
-        bam = "results/mapping/mapped/{sample}.bam"
+        bam = "results/mapping/clean/{sample}.bam"
     output:
-        fasta = temp(outdir + "/cupcake.collapsed/{sample}/out.hq.fasta"),
-        sam = temp(outdir + "/cupcake.collapsed/{sample}/out.sam"),
-        out1 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.gff",
-        out2 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.gff.unfuzzy",
-        out3 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.group.txt",
-        out4 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.group.txt.unfuzzy",
-        out5 = outdir + "/cupcake.collapsed/{sample}/out.ignored_ids.txt",
-        out6 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.rep.fa",
-        gtf = outdir + "/cupcake.collapsed/{sample}.gtf.gz",
-        tbi = outdir + "/cupcake.collapsed/{sample}.gtf.gz.tbi"
+        fasta = temp(outdir + "/cupcake/collapsed/{sample}/out.hq.fasta"),
+        gff = outdir + "/cupcake/collapsed/{sample}/out.collapsed.gff",
+        # out2 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.gff.unfuzzy",
+        # out3 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.group.txt",
+        # out4 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.group.txt.unfuzzy",
+        # out5 = outdir + "/cupcake.collapsed/{sample}/out.ignored_ids.txt",
+        # out6 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.rep.fa",
+        gtf = outdir + "/cupcake/collapsed/{sample}.gtf.gz",
+        tbi = outdir + "/cupcake/collapsed/{sample}.gtf.gz.tbi"
     params:
-        out = outdir + "/cupcake.collapsed/{sample}/out"
+        prefix = outdir + "/cupcake/collapsed/{sample}/out",
+        script = "../software/cDNA_Cupcake-master/cupcake/tofu/collapse_isoforms_by_sam.py"
     log:
-        log = outdir + "/cupcake.collapsed/{sample}/out.log"
+        log = outdir + "/cupcake/collapsed/{sample}/collapse.log"
     shell:
         """
         gzip -d -c {input.fasta} > {output.fasta}
-        samtools view -h {input.bam} > {output.sam}
-        set +u; source activate SQANTI3.env
-        collapse_isoforms_by_sam.py --input {output.fasta} -s {output.sam} --dun-merge-5-shorter -o {params.out} &> {log}
-        conda deactivate
-        bedtools sort -i {output.out1} | bgzip -c > {output.gtf}
+        python {params.script} --max_3_diff 5 --input {output.fasta} --bam {input.bam} --dun-merge-5-shorter -o {params.prefix} &> {log}
+        bedtools sort -i {output.gff} | bgzip -c > {output.gtf}
         tabix -p gff {output.gtf}
         """
 
 rule get_abundance_post_collapse: # 获取每个isoform上的FLNC的数量
     input:
         csv = "results/isoseq/polished/{sample}.cluster_report.csv",
-        gff = outdir + "/cupcake.collapsed/{sample}/out.collapsed.gff"
+        gff = rules.collapse.output.gff
     output:
-        out1 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.abundance.txt",
-        out2 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.read_stat.txt"
+        txt = outdir + "/cupcake/collapsed/{sample}/out.collapsed.abundance.txt",
+        # out2 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.read_stat.txt"       
     params:
-        prefix = outdir + "/cupcake.collapsed/{sample}/out.collapsed"
+        prefix = outdir + "/cupcake/collapsed/{sample}/out.collapsed",
+        script = "../software/cDNA_Cupcake-master/cupcake/tofu/get_abundance_post_collapse.py"
     shell:
         """
-        set +u; source activate SQANTI3.env
-        get_abundance_post_collapse.py {params.prefix} {input.csv} &> /dev/null
-        conda deactivate
+        python {params.script} {params.prefix} {input.csv} &> /dev/null
         """
 
 # Filter away 5' degraded isoforms
 rule filter_away_subset:
     input:
-        gff = outdir + "/cupcake.collapsed/{sample}/out.collapsed.gff",
-        abd = outdir + "/cupcake.collapsed/{sample}/out.collapsed.abundance.txt"
+        gff = rules.collapse.output.gff,
+        txt = rules.get_abundance_post_collapse.output.txt
     output:
-        out1 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.filtered.gff",
-        out2 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.filtered.rep.fa",
-        out3 = outdir + "/cupcake.collapsed/{sample}/out.collapsed.filtered.abundance.txt",
-        gtf = outdir + "/cupcake.collapsed/{sample}.filtered.gtf.gz",
-        tbi = outdir + "/cupcake.collapsed/{sample}.filtered.gtf.gz.tbi",
+        gff = outdir + "/cupcake/collapsed/{sample}/out.collapsed.filtered.gff",
+        # out2 = outdir + "/cupcake/collapsed/{sample}/out.collapsed.filtered.rep.fa",
+        # out3 = outdir + "/cupcake/collapsed/{sample}/out.collapsed.filtered.abundance.txt",
+        gtf = outdir + "/cupcake/collapsed/{sample}.filtered.gtf.gz",
+        tbi = outdir + "/cupcake/collapsed/{sample}.filtered.gtf.gz.tbi",
     params:
-        prefix = outdir + "/cupcake.collapsed/{sample}/out.collapsed"
+        prefix = outdir + "/cupcake/collapsed/{sample}/out.collapsed",
+        script = "../software/cDNA_Cupcake-master/cupcake/tofu/filter_away_subset.py"
     shell:
         """
-        set +u; source activate SQANTI3.env
-        filter_away_subset.py {params.prefix}
-        conda deactivate
-        bedtools sort -i {output.out1} | bgzip -c > {output.gtf}
+        python {params.script} {params.prefix}
+        bedtools sort -i {output.gff} | bgzip -c > {output.gtf}
         tabix -p gff {output.gtf}
         """
 
 # 使用cupcake合并需要collapsed的其他结果文件，适用范围较小
+
 rule chain:
     input:
-        in1 = outdir + "/cupcake.collapsed/Ad_Fe/out.collapsed.filtered.gff",
-        in2 = outdir + "/cupcake.collapsed/Ad_Ma/out.collapsed.filtered.gff",
-        in3 = outdir + "/cupcake.collapsed/Ju_Mi/out.collapsed.filtered.gff",
+        in1 = outdir + "/cupcake/collapsed/Ad_Fe/out.collapsed.filtered.gff",
+        in2 = outdir + "/cupcake/collapsed/Ad_Ma/out.collapsed.filtered.gff",
+        in3 = outdir + "/cupcake/collapsed/Ju_Mi/out.collapsed.filtered.gff",
     output:
-        cfg = temp(outdir + "/cupcake.chain/config.txt"),
-        out1 = outdir + "/cupcake.chain/all_samples.chained.gff",
-        out2 = outdir + "/cupcake.chain/all_samples.chained_ids.txt",
-        out3 = outdir + "/cupcake.chain/all_samples.chained_count.txt",
-        gtf = outdir + "/cupcake.chain/all_samples.chained.gtf.gz",
-        tbi = outdir + "/cupcake.chain/all_samples.chained.gtf.gz.tbi"
+        cfg = temp(outdir + "/cupcake/chain/config.txt"),
+        gff = outdir + "/cupcake/chain/all_samples.chained.gff",
+        # out2 = outdir + "/cupcake/chain/all_samples.chained_ids.txt",
+        # out3 = outdir + "/cupcake/chain/all_samples.chained_count.txt",
+        gtf = outdir + "/cupcake/chain/all_samples.chained.gtf.gz",
+        tbi = outdir + "/cupcake/chain/all_samples.chained.gtf.gz.tbi"
     log:
-        log = outdir + "/cupcake.chain/chain.log"
+        log = outdir + "/cupcake/chain/chain.log"
+    params:
+        script = "../software/cDNA_Cupcake-master/cupcake/tofu/counting/chain_samples.py"
     threads:
         8
     shell:
         """
         cat > {output.cfg} << EOF
-SAMPLE=Ad_Fe;results/cupcake/collapsed/Ad_Fe
-SAMPLE=Ad_Ma;results/cupcake/collapsed/Ad_Ma
-SAMPLE=Ju_Mi;results/cupcake/collapsed/Ju_Mi
+SAMPLE=Ad_Fe;results/assembly/cupcake/collapsed/Ad_Fe
+SAMPLE=Ad_Ma;results/assembly/cupcake/collapsed/Ad_Ma
+SAMPLE=Ju_Mi;results/assembly/cupcake/collapsed/Ju_Mi
 GROUP_FILENAME=out.collapsed.group.txt
 GFF_FILENAME=out.collapsed.filtered.gff
 COUNT_FILENAME=out.collapsed.filtered.abundance.txt
 FASTA_FILENAME=out.collapsed.filtered.rep.fa
 EOF
-        set +u; source activate SQANTI3.env
-        chain_samples.py --cpus {threads} {output.cfg} count_fl &> {log}
-        conda deactivate
+        python {params.script} --cpus {threads} {output.cfg} count_fl &> {log}
         mv all_samples.chained.gff all_samples.chained_ids.txt all_samples.chained_count.txt `dirname {output.cfg}`
-        bedtools sort -i {output.out1} | bgzip -c > {output.gtf}
+        bedtools sort -i {output.gff} | bgzip -c > {output.gtf}
         tabix -p gff {output.gtf}
         """
 
 rule correct_gene_id_of_cupcake_chain_gtf:
     input:
-        gff = outdir + "/cupcake.chain/all_samples.chained.gff"
+        gff = rules.chain.output.gff
     output:
-        gff = outdir + "/cupcake.chain/all_samples.chained.corrected.gff",
-        gtf = outdir + "/cupcake.chain/all_samples.chained.corrected.gtf.gz",
-        tbi = outdir + "/cupcake.chain/all_samples.chained.corrected.gtf.gz.tbi"
+        gff = outdir + "/cupcake/chain/all_samples.chained.corrected.gff",
+        gtf = outdir + "/cupcake/chain/all_samples.chained.corrected.gtf.gz",
+        tbi = outdir + "/cupcake/chain/all_samples.chained.corrected.gtf.gz.tbi"
     shell:
         """
         ./scripts/correct_gene_id_of_cupcake_chain_gtf.py {input.gff} {output.gff}

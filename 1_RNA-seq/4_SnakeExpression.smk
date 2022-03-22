@@ -23,11 +23,11 @@ rule all:
 def get_gtf(wildcards):
     ref = wildcards.ref
     if ref == "ncbi":
-        return "../common/ncbi/serDum.ncbi.optimized.gtf.gz"
+        return config["ncbi"]
     if ref == "ensembl":
-        return "../common/ncbi/serDum.ensembl.optimized.gtf.gz"
+        return config["ensembl"]
     if ref == "taco":
-        return "results/assembly/taco/stringtie.gtf.gz"
+        return config["assembly"]
     assert False
 
 
@@ -65,7 +65,7 @@ rule merge_feature_counts:
         tsv = outdir + "/featureCounts/{ref}.feature_count.tsv"
     shell:
         """
-        ./scripts/merge_feature_counts.py {input} {output.tsv}
+        ../common/scripts/expression/merge_feature_counts.py {input} {output.tsv}
         """
 
 # StringTie
@@ -92,7 +92,7 @@ rule merge_stringtie_gene_abund:
         tsv = outdir + "/stringtie/{ref}.gene_abund.tsv"
     shell:
         """
-        ./scripts/merge_stringtie_gene_abund.py {input} {output.tsv}
+        ../common/scripts/expression/merge_stringtie_gene_abund.py {input} {output.tsv}
         """
 
 rule merge_stringtie_transcript_fpkm:
@@ -102,7 +102,7 @@ rule merge_stringtie_transcript_fpkm:
         tsv = outdir + "/stringtie/{ref}.transcript_fpkm.tsv"
     shell:
         """
-        ./scripts/merge_stringtie_transcript_fpkm.py {input} {output.tsv}
+        ../common/scripts/expression/merge_stringtie_transcript_fpkm.py {input} {output.tsv}
         """
 
 # common rules
@@ -114,5 +114,5 @@ rule plot_correlation:
         pdf = "{prefix}.corr.pdf"
     shell:
         """
-        ./scripts/plot_correlation.py {input.tsv} {output.pdf}
+        ../common/scripts/expression/plot_correlation.py {input.tsv} {output.pdf}
         """

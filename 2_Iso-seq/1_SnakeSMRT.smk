@@ -15,9 +15,9 @@ rule all:
         expand(outdir + "/clustered/{sample}.bam", sample=samples),
         expand(outdir + "/polished/{sample}.bam", sample=samples),
         # 基因组比对与注释
-        outdir + "/genome.isoseq.mmi",
-        expand(outdir + "/aligned/{sample}.bam", sample=samples),
-        expand(outdir + "/aligned/{sample}.stats", sample=samples),
+        outdir + "/minimap2/genome.isoseq.mmi",
+        expand(outdir + "/minimap2/aligned/{sample}.bam", sample=samples),
+        expand(outdir + "/minimap2/aligned/{sample}.stats", sample=samples),
         expand(outdir + "/collapsed/{sample}.gtf.gz", sample=samples),
 
 # Generate circular consensus sequences (ccs) from subreads.
@@ -108,7 +108,7 @@ rule mmindex_isoseq:
     input:
         fasta = config["genome_fasta"]
     output:
-        mmi = outdir + "/genome.isoseq.mmi"
+        mmi = outdir + "/minimap2/genome.isoseq.mmi"
     threads:
         threads
     shell:
@@ -123,7 +123,7 @@ rule align:
         mmi = rules.mmindex_isoseq.output.mmi,
         bam = rules.polish.output.bam
     output:
-        bam = outdir + "/aligned/{sample}.bam"
+        bam = outdir + "/minimap2/aligned/{sample}.bam"
     threads:
         threads
     shell:
@@ -160,6 +160,16 @@ rule pacbio_index:
     shell:
         """
         pbindex {input}
+        """
+
+rule bam_index:
+    input:
+        "{prefix}.bam"
+    output:
+        "{prefix}.bam.bai"
+    shell:
+        """
+        bamtools index -in {input}
         """
 
 rule bam_stats:
