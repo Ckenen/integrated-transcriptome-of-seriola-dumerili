@@ -1,6 +1,6 @@
 #!/usr/bin/env snakemake
 import yaml
-with open("../1_ngs/config.yaml") as f:
+with open("../1_RNA-seq/config.yaml") as f:
     samples = yaml.load(f, Loader=yaml.BaseLoader)["samples"]
     samples.sort()
 groups = list(set([s[:-2] for s in samples]))
@@ -18,15 +18,15 @@ for i in range(len(groups)):
         pairs2.append("%s_vs_%s" % (groups[i], groups[j]))
 print(len(pairs2))
 
-indir = "../1_ngs/results/mapping/rmdup"
+indir = "../1_RNA-seq/results/mapping/rmdup"
 outdir = "results/rmats"
 
 rule all:
     input:
         outdir + "/ref.gtf",
         expand(outdir + "/prep/{sample}.tmp", sample=samples),
-        expand(outdir + "/pairs1/{pair}", pair=pairs1),
-        expand(outdir + "/pairs2/{pair}", pair=pairs2)
+        # expand(outdir + "/pairs1/{pair}", pair=pairs1),
+        # expand(outdir + "/pairs2/{pair}", pair=pairs2)
 
 rule make_ref_gtf:
     input:

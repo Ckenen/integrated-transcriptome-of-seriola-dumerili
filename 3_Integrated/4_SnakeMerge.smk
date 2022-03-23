@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# 合并二代和三代组装结果
 configfile: "config.yaml"
 outdir = "results/assembly"
 refs = ["ncbi", "ensembl"]
@@ -12,15 +11,12 @@ rule all:
         outdir + "/final.gtf.gz"
         # outdir + "/fpkm.tsv",
         
-
-# 合并NGS和TGS，过滤掉chrM的注释
-
 rule merge_ngs_and_tgs:
     input:
-        ngs = "../1_RNA-seq/results/assembly/taco/stringtie.gtf.gz",
-        tgs = "../2_Iso-seq/results/assembly/cupcake.gtf.gz",
-        fpkm_ngs = "../1_RNA-seq/results/expression/stringtie/taco.transcript_fpkm.tsv",
-        fpkm_tgs = "../2_Iso-seq/results/expression/stringtie/cupcake.transcript_fpkm.tsv",
+        ngs = config["ngs"],
+        tgs = config["tgs"],
+        fpkm_ngs = "results/expression/stringtie/ngs.transcript_fpkm.tsv",
+        fpkm_tgs = "results/expression/stringtie/tgs.transcript_fpkm.tsv",
         sqanti = "results/compare/sqanti3/tgs_vs_ngs/query_classification.txt"        
     output:
         tmp = temp(outdir + "/ngs_tgs.merged.gtf"),
@@ -39,9 +35,9 @@ rule merge_ngs_and_tgs:
 
 rule sqanti3:
     input:
-        ref = "../common/ncbi/serDum.{ref}.optimized.gtf.gz",
+        ref = lambda wildcards: config[wildcards.ref],
         gtf = rules.merge_ngs_and_tgs.output.gtf,
-        fasta = config["GENOME"]
+        fasta = config["genome"]
     output:       
         directory(outdir + "/sqanti3/{ref}_vs_ngs_tgs.merged")
     log:
@@ -63,7 +59,7 @@ rule sqanti3:
 
 rule gffcompare:
     input:
-        ref = "../common/ncbi/serDum.{ref}.optimized.gtf.gz",
+        ref = lambda wildcards: config[wildcards.ref],
         gtf = rules.merge_ngs_and_tgs.output.gtf
     output:
         ref = outdir + "/gffcompare/{ref}_vs_ngs_tgs.merged.ref.gtf",
@@ -82,7 +78,7 @@ rule gffcompare:
         gffcompare -r {output.ref} -R -o {params.prefix} {output.gtf} &> {log}
         """
 
-# 将与NCBI比较之后的结果最为最终注释，并且添加chrM注释
+# 将与NCBI比较之后的结果最为最终注释
 
 rule final_gtf:
     input:
@@ -92,8 +88,7 @@ rule final_gtf:
         tbi = outdir + "/final.gtf.gz.tbi"
     shell:
         """
-        ( zcat ../common/ncbi/serDum.ncbi.optimized.gtf.gz | grep NC_016870.1
-        bedtools sort -i {input.gtf}/query_corrected.gtf.cds.gff ) | bgzip -c > {output.gtf}
+        bedtools sort -i {input.gtf}/query_corrected.gtf.cds.gff | bgzip -c > {output.gtf}
         tabix -p gff {output.gtf}
         """
 

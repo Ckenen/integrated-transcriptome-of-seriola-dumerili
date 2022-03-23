@@ -9,7 +9,7 @@ rule all:
         expand(outdir + "/isoforms/{build}.fa", build=builds),
         expand(outdir + "/ORFfinder/{build}.fa", build=builds),
         # outdir + "/GeneMarkST/ORFs.gff", # deprecated!
-        expand(outdir + "/diamond/{build}.nr.tsv", build=builds),
+        # expand(outdir + "/diamond/{build}.nr.tsv", build=builds),
         expand(outdir + "/eggnog/{build}.emapper.hits", build=builds),
         # expand(outdir + "/interpro/faSplited/{build}", build=builds),
         # expand(outdir + "/interpro/pfam/{name}.tsv", name=names),
