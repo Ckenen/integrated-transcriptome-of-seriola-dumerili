@@ -1,1 +1,0 @@
-../1_RNA-seq/8_SnakeFunction.smk

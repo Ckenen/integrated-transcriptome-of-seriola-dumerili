@@ -1,18 +1,23 @@
 #!/usr/bin/env runsnakemake
 configfile: "config.yaml"
-samples = config["samples"]
+import yaml
+with open("../1_RNA-seq/config.yaml") as f:
+    samples = yaml.load(f, Loader=yaml.BaseLoader)["samples"]
+refs = config["builds"]
 threads = 8
-indir = "results/mapping/rmdup"
+indir = "../1_RNA-seq/results/mapping/rmdup"
 outdir = "results/expression"
-refs = ["ncbi", "ensembl", "taco"]
 
 # 流程： 计算FPKM、合并、计算相关性
 
 rule all:
     input:
+        expand(outdir + "/gtfs/{ref}.gtf", ref=refs),
+
         expand(outdir + "/featureCounts/{ref}/{sample}.txt", ref=refs, sample=samples),
         expand(outdir + "/featureCounts/{ref}.feature_count.tsv", ref=refs),
         expand(outdir + "/featureCounts/{ref}.feature_count.corr.pdf", ref=refs),
+
         expand(outdir + "/stringtie/{ref}/{sample}", ref=refs, sample=samples),
         expand(outdir + "/stringtie/{ref}.gene_abund.tsv", ref=refs),
         expand(outdir + "/stringtie/{ref}.gene_abund.corr.pdf", ref=refs),
@@ -20,22 +25,11 @@ rule all:
         expand(outdir + "/stringtie/{ref}.transcript_fpkm.corr.pdf", ref=refs),
 
 
-def get_gtf(wildcards):
-    ref = wildcards.ref
-    if ref == "ncbi":
-        return config["ncbi"]
-    if ref == "ensembl":
-        return config["ensembl"]
-    if ref == "taco":
-        return config["assembly"]
-    assert False
-
-
 rule uncompress_gtf:
     input:  
-        gtf = lambda wildcards: get_gtf(wildcards)
+        gtf = lambda wildcards: config[wildcards.ref]
     output:
-        gtf = outdir + "/{ref}.gtf"
+        gtf = outdir + "/gtfs/{ref}.gtf"
     shell:
         """
         gzip -d -c {input.gtf} | awk '$3!="gene"' > {output.gtf}

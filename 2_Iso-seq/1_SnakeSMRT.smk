@@ -8,13 +8,13 @@ outdir = "results/isoseq"
 
 rule all:
     input:
-        # Iso-seq数据预处理
+        # SMRT-link pipeline
         expand(outdir + "/ccs/{sample}.bam", sample=samples),
         expand(outdir + "/demux/{sample}.primer_5p--primer_3p.bam", sample=samples),
         expand(outdir + "/flnc/{sample}.bam", sample=samples),
         expand(outdir + "/clustered/{sample}.bam", sample=samples),
         expand(outdir + "/polished/{sample}.bam", sample=samples),
-        # 基因组比对与注释
+        # Mapping and collapse
         outdir + "/minimap2/genome.isoseq.mmi",
         expand(outdir + "/minimap2/aligned/{sample}.bam", sample=samples),
         expand(outdir + "/minimap2/aligned/{sample}.stats", sample=samples),
@@ -32,7 +32,8 @@ rule ccs:
         threads
     shell:
         """
-        ccs --skip-polish --min-passes 4 --min-length 200 --min-rq 0.99 --num-threads {threads} {input.bam} {output.bam}
+        ccs --skip-polish --min-passes 4 --min-length 200 --min-rq 0.99 \
+            --num-threads {threads} {input.bam} {output.bam}
         """
 
 # Lima, Demultiplex Barcoded PacBio Data and Clip Barcodes
@@ -65,7 +66,8 @@ rule refine:
         threads
     shell:
         """
-        isoseq3 refine --require-polya --min-polya-length 20 -j {threads} {input} {output}
+        isoseq3 refine --require-polya --min-polya-length 20 \
+            -j {threads} {input} {output}
         """
 
 # Cluster FLNC reads and generate unpolished transcripts (FLNC to UNPOLISHED)
@@ -106,7 +108,7 @@ rule polish:
 
 rule mmindex_isoseq:
     input:
-        fasta = config["genome_fasta"]
+        fasta = config["genome"]
     output:
         mmi = outdir + "/minimap2/genome.isoseq.mmi"
     threads:

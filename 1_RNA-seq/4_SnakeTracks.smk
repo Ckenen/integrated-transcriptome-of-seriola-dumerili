@@ -3,7 +3,6 @@ configfile: "config.yaml"
 samples = config["samples"]
 indir = "results/mapping/rmdup"
 outdir = "results/tracks"
-GENOME_SIZES = "../common/ncbi/serDum.ncbi.sizes"
 
 rule all:
     input:
@@ -39,7 +38,7 @@ rule bam_to_bed:
 rule bed_to_bedgraph:
     input:
         bed = outdir + "/bed/{sample}.bed",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.bg"
@@ -52,7 +51,7 @@ rule bed_to_bedgraph:
 rule bed_to_bedgraph_pos:
     input:
         bed = outdir + "/bed/{sample}.bed",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.+.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.+.bg"
@@ -65,7 +64,7 @@ rule bed_to_bedgraph_pos:
 rule bed_to_bedgraph_neg:
     input:
         bed = outdir + "/bed/{sample}.bed",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.-.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.-.bg"
@@ -79,7 +78,7 @@ rule bed_to_bedgraph_norm:
     input:
         bed = outdir + "/bed/{sample}.bed",
         txt = outdir + "/bed/{sample}.txt",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.norm.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.norm.bg"
@@ -94,7 +93,7 @@ rule bed_to_bedgraph_norm_pos:
     input:
         bed = outdir + "/bed/{sample}.bed",
         txt = outdir + "/bed/{sample}.txt",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.norm.+.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.norm.+.bg"
@@ -109,7 +108,7 @@ rule bed_to_bedgraph_norm_neg:
     input:
         bed = outdir + "/bed/{sample}.bed",
         txt = outdir + "/bed/{sample}.txt",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         tmp = temp(directory(outdir + "/bg/{sample}.norm.-.bg.SORT_TMP")),
         bg = outdir + "/bg/{sample}.norm.-.bg"
@@ -126,7 +125,7 @@ rule bed_to_bedgraph_norm_neg:
 rule bedgraph_to_bigwig:
     input:
         bg = outdir + "/bg/{prefix}.bg",
-        genome = GENOME_SIZES
+        genome = config["genome_sizes"]
     output:
         bw = outdir + "/bw/{prefix}.bw"
     shell:

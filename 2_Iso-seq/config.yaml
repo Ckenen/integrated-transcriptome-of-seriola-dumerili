@@ -2,8 +2,5 @@ samples:
  - Ad_Ma
  - Ad_Fe
  - Ju_Mi
-#  - Adult_Male
-#  - Adult_Female 
-#  - Juvenile
 
-genome_fasta: ../common/ncbi/serDum.ncbi.fasta
+genome: ../common/ncbi/serDum.genome.fa

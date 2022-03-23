@@ -78,8 +78,4 @@ threads: 20
 genome: ../common/ncbi/serDum.genome.fa
 genome_sizes: ../common/ncbi/serDum.genome.sizes
 annotation: ../common/ncbi/serDum.annotation.filtered.no_mito.sorted.gtf.gz
-
-ncbi: ../common/ncbi/serDum.annotation.filtered.no_mito.sorted.gtf.gz
-# ncbi_bed: 
-ensembl: ../common/ensembl/serDum.annotation.converted.filtered.no_mito.sorted.gtf.gz
-assembly: results/assembly/taco/stringtie.gtf.gz
+bed: ../common/ncbi/serDum.annotation.filtered.no_mito.sorted.bed.gz

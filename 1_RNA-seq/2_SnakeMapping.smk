@@ -20,7 +20,7 @@ rule all:
         expand(outdir + "/filtered/{sample}_mt.bam.bai", sample=samples),
         expand(outdir + "/filtered/{sample}_mt.flagstat", sample=samples),
 
-        # expand(outdir + "/infered/{sample}.txt", sample=samples),
+        expand(outdir + "/infered/{sample}.txt", sample=samples),
         
         expand(outdir + "/markdup/{sample}.bam", sample=samples),
         expand(outdir + "/markdup/{sample}.bam.bai", sample=samples),
@@ -131,29 +131,29 @@ rule filter_alignment:
 
 # Infer experiment
 
-# rule uncompress_bed:
-#     input:
-#         bed = config["ncbi_bed"]
-#     output:
-#         bed = outdir + "/infered/ref.bed"
-#     shell:
-#         """
-#         gzip -d -c {input.bed} > {output.bed}
-#         """
+rule uncompress_bed:
+    input:
+        bed = config["bed"]
+    output:
+        bed = outdir + "/infered/ref.bed"
+    shell:
+        """
+        gzip -d -c {input.bed} > {output.bed}
+        """
 
-# rule infer_experiment:
-#     input:
-#         bam = rules.filter_alignment.output.bam,
-#         bai = rules.filter_alignment.output.bam + ".bai",
-#         bed = rules.uncompress_bed.output.bed
-#     output:
-#         txt = outdir + "/infered/{sample}.txt"
-#     shell:
-#         """
-#         set +u; source activate py27
-#         infer_experiment.py -i {input.bam} -r {input.bed} > {output.txt} 2> /dev/null
-#         conda deactivate 
-#         """
+rule infer_experiment:
+    input:
+        bam = rules.filter_alignment.output.bam,
+        bai = rules.filter_alignment.output.bam + ".bai",
+        bed = rules.uncompress_bed.output.bed
+    output:
+        txt = outdir + "/infered/{sample}.txt"
+    shell:
+        """
+        set +u; source activate py27
+        infer_experiment.py -i {input.bam} -r {input.bed} > {output.txt} 2> /dev/null
+        conda deactivate 
+        """
 
 # MarkDup
 
@@ -242,65 +242,65 @@ rule bam_to_fam:
         famtools.py build {input.bam} {output.fam} &> /dev/null
         """
 
-rule extract_splice_junction:
-    input:
-        bam = "{prefix}.bam",
-        bai = "{prefix}.bam.bai",
-        fsa = config["genome"]
-    output:
-        tmp = temp("{prefix}.SJ.unsorted.bed"),
-        bed = "{prefix}.SJ.bed.gz",
-        tbi = "{prefix}.SJ.bed.gz.tbi"
-    shell:
-        """
-        ./scripts/extract_splice_junction.py {input.bam} {input.fsa} -rf {output.tmp}
-        bedtools sort -i {output.tmp} | bgzip -c > {output.bed}
-        tabix -p bed {output.bed}
-        """
+# rule extract_splice_junction:
+#     input:
+#         bam = "{prefix}.bam",
+#         bai = "{prefix}.bam.bai",
+#         fsa = config["genome"]
+#     output:
+#         tmp = temp("{prefix}.SJ.unsorted.bed"),
+#         bed = "{prefix}.SJ.bed.gz",
+#         tbi = "{prefix}.SJ.bed.gz.tbi"
+#     shell:
+#         """
+#         ./scripts/extract_splice_junction.py {input.bam} {input.fsa} -rf {output.tmp}
+#         bedtools sort -i {output.tmp} | bgzip -c > {output.bed}
+#         tabix -p bed {output.bed}
+#         """
 
-rule splice_junction_motif:
-    input:
-        bed = "{prefix}.SJ.bed.gz"
-    output:
-        txt = "{prefix}.SJ.summary.txt"
-    shell:
-        """
-        zcat {input.bed} | awk '{{print $4}}' | sort | uniq -c | sort -k1,1nr | awk '{{print $2"\\t"$1}}' > {output.txt}
-        """
+# rule splice_junction_motif:
+#     input:
+#         bed = "{prefix}.SJ.bed.gz"
+#     output:
+#         txt = "{prefix}.SJ.summary.txt"
+#     shell:
+#         """
+#         zcat {input.bed} | awk '{{print $4}}' | sort | uniq -c | sort -k1,1nr | awk '{{print $2"\\t"$1}}' > {output.txt}
+#         """
 
-rule get_chrom_read_count:
-    input:
-        bam = "{prefix}.bam"
-    output:
-        tsv = "{prefix}.chrom_read_count.tsv"
-    shell:
-        """
-        ./scripts/stat_chrom_read_count.py {input.bam} > {output.tsv}
-        """
+# rule get_chrom_read_count:
+#     input:
+#         bam = "{prefix}.bam"
+#     output:
+#         tsv = "{prefix}.chrom_read_count.tsv"
+#     shell:
+#         """
+#         ./scripts/stat_chrom_read_count.py {input.bam} > {output.tsv}
+#         """
 
-rule infer_fragment_length:
-    input:
-        fam = "{prefix}.fam"
-    output:
-        txt = "{prefix}.lengths.txt"
-    log:
-        log = "{prefix}.lengths.log"
-    shell:
-        """
-        ./scripts/infer_fragment_length.py {input.fam} {output.txt} &> {log}
-        """
+# rule infer_fragment_length:
+#     input:
+#         fam = "{prefix}.fam"
+#     output:
+#         txt = "{prefix}.lengths.txt"
+#     log:
+#         log = "{prefix}.lengths.log"
+#     shell:
+#         """
+#         ./scripts/infer_fragment_length.py {input.fam} {output.txt} &> {log}
+#         """
 
-rule fam_to_bigwig:
-    input:
-        fam = "{prefix}.fam"
-    output:
-        bw1 = "{prefix}.bw",
-        bw2 = "{prefix}.+.bw",
-        bw3 = "{prefix}.-.bw",
-        bw4 = "{prefix}.norm.bw",
-        bw5 = "{prefix}.norm.+.bw",
-        bw6 = "{prefix}.norm.-.bw",
-    shell:
-        """
-        ./scripts/fam_to_bigwig.sh --rf {input.fam} {wildcards.prefix} &> /dev/null
-        """
+# rule fam_to_bigwig:
+#     input:
+#         fam = "{prefix}.fam"
+#     output:
+#         bw1 = "{prefix}.bw",
+#         bw2 = "{prefix}.+.bw",
+#         bw3 = "{prefix}.-.bw",
+#         bw4 = "{prefix}.norm.bw",
+#         bw5 = "{prefix}.norm.+.bw",
+#         bw6 = "{prefix}.norm.-.bw",
+#     shell:
+#         """
+#         ./scripts/fam_to_bigwig.sh --rf {input.fam} {wildcards.prefix} &> /dev/null
+#         """
