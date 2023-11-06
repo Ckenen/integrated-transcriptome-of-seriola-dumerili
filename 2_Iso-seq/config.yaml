@@ -1,6 +1,0 @@
-samples:
- - Ad_Ma
- - Ad_Fe
- - Ju_Mi
-
-genome: ../common/ncbi/serDum.genome.fa

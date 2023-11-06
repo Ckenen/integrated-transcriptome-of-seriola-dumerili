@@ -1,8 +1,7 @@
-/ncbi
-*/data
-*/.ipynb_checkpoints
-*/.snakemake
-/.vscode
-*/results
-*/trash
+data/
+.ipynb_checkpoints/
+.snakemake/
+.vscode/
+results/
 .Rproj.user
+results
