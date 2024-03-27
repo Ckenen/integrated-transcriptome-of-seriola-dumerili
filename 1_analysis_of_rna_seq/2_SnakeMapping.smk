@@ -1,16 +1,16 @@
-#!/usr/bin/env runsnakemake
+#!/usr/bin/env runsnakemakeSAMPLES
 include: "0_SnakeCommon.smk"
-indir = "data/datasets"
-outdir = "results/mapping"
-#samples = samples[3:]
+SAMPLES = SAMPLES_ALL
+INDIR = "data/datasets"
+OUTDIR = "results/mapping"
 
 rule all:
     input:
-        outdir + "/star/index",
-        expand(outdir + "/star/mapped/{sample}", sample=samples),
-        expand(outdir + "/filtered/{sample}.bam", sample=samples),
-        expand(outdir + "/infered/{sample}.txt", sample=samples),
-        expand(outdir + "/rmdup/{sample}.bam", sample=samples),
+        OUTDIR + "/star/index",
+        expand(OUTDIR + "/star/mapped/{sample}", sample=SAMPLES),
+        expand(OUTDIR + "/filtered/{sample}.bam", sample=SAMPLES),
+        expand(OUTDIR + "/infered/{sample}.txt", sample=SAMPLES),
+        expand(OUTDIR + "/rmdup/{sample}.bam", sample=SAMPLES),
 
 # Build index and align reads to genome.
 
@@ -19,9 +19,9 @@ rule star_index:
         fasta = GENOME_FASTA,
         gtf = ANNOTATION_GTF
     output:
-        out = directory(outdir + "/star/index")
+        out = directory(OUTDIR + "/star/index")
     log:
-        log = outdir + "/star/index.log"
+        log = OUTDIR + "/star/index.log"
     threads:
         20
     shell:
@@ -40,13 +40,13 @@ rule star_index:
 
 rule star_mapping:
     input:
-        fq1 = indir + "/{sample}_R1.fastq.gz",
-        fq2 = indir + "/{sample}_R2.fastq.gz", 
+        fq1 = INDIR + "/{sample}_R1.fastq.gz",
+        fq2 = INDIR + "/{sample}_R2.fastq.gz", 
         idx = rules.star_index.output.out,
     output:
-        out = directory(outdir + "/star/mapped/{sample}")
+        out = directory(OUTDIR + "/star/mapped/{sample}")
     log:
-        log = outdir + "/star/mapped/{sample}.log"
+        log = OUTDIR + "/star/mapped/{sample}.log"
     threads:
         20
     shell:
@@ -67,12 +67,17 @@ rule filter_bam:
     input:
         bamdir = rules.star_mapping.output.out
     output:
-        bam = outdir + "/filtered/{sample}.bam"
+        bam = OUTDIR + "/filtered/{sample}.bam"
     threads:
         8
     shell:
         """
-        samtools view -@ {threads} -F 2308 -f 3 -d 'NH:1' -o {output.bam} {input.bamdir}/Aligned.sortedByCoord.out.bam
+        samtools view -@ {threads} \
+            -F 2308 \
+            -f 3 \
+            -d 'NH:1' \
+            -o {output.bam} \
+            {input.bamdir}/Aligned.sortedByCoord.out.bam
         samtools index -@ {threads} {output.bam}
         """
 
@@ -81,11 +86,12 @@ rule infer_experiment:
         bam = rules.filter_bam.output.bam,
         bed = ANNOTATION_BED
     output:
-        txt = outdir + "/infered/{sample}.txt"
+        txt = OUTDIR + "/infered/{sample}.txt"
     shell:
         """
         set +u; source activate py27
-        infer_experiment.py -i {input.bam} -r {input.bed} > {output.txt} 2> /dev/null
+        infer_experiment.py -i {input.bam} \
+            -r {input.bed} > {output.txt} 2> /dev/null
         conda deactivate 
         """
 
@@ -93,15 +99,17 @@ rule rmdup:
     input:
         bam = rules.filter_bam.output.bam
     output:
-        bam = outdir + "/rmdup/{sample}.bam",
-        txt = outdir + "/rmdup/{sample}_metrics.txt"
+        bam = OUTDIR + "/rmdup/{sample}.bam",
+        txt = OUTDIR + "/rmdup/{sample}_metrics.txt"
     log:
-        outdir + "/rmdup/{sample}.log"
+        OUTDIR + "/rmdup/{sample}.log"
     threads:
         20
     shell:
         """
         picard MarkDuplicates -REMOVE_DUPLICATES true \
-            -I {input.bam} -O {output.bam} -M {output.txt} &> {log}
+            -I {input.bam} \
+            -O {output.bam} \
+            -M {output.txt} &> {log}
         samtools index -@ {threads} {output.bam}
         """

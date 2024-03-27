@@ -1,26 +1,30 @@
 #!/usr/bin/env snakemake
 include: "0_SnakeCommon.smk"
-indir = "results/mapping/rmdup"
-outdir = "results/expression"
+SAMPLES = SAMPLES_ALL
+INDIR = "results/mapping/rmdup"
+OUTDIR = "results/expression"
 
 rule all:
     input:
-        expand(outdir + "/stringtie/{sample}", sample=samples),
+        expand(OUTDIR + "/stringtie/{sample}", sample=SAMPLES),
 
 rule stringtie:
     input:
-        bam = indir + "/{sample}.bam",
+        bam = INDIR + "/{sample}.bam",
         gtf = ANNOTATION_GTF
     output:
-        out = directory(outdir + "/stringtie/{sample}")
+        out = directory(OUTDIR + "/stringtie/{sample}")
     log:
-        outdir + "/stringtie/{sample}.log"
+        OUTDIR + "/stringtie/{sample}.log"
     threads:
         8
     shell:
         """
         mkdir {output.out}
-        stringtie {input.bam} --rf -e -A {output.out}/gene_abund.tab \
-            -C {output.out}/cov_refs.gtf -p {threads} -G {input.gtf} \
+        stringtie {input.bam} --rf -e \
+            -A {output.out}/gene_abund.tab \
+            -C {output.out}/cov_refs.gtf \
+            -p {threads} \
+            -G {input.gtf} \
             -o {output.out}/transcripts.gtf &> {log}
         """

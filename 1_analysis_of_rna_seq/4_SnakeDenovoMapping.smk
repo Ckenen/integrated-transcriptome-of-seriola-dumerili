@@ -1,16 +1,18 @@
 #!/usr/bin/env runsnakemake
 include: "0_SnakeCommon.smk"
-samples = final_samples
-indir = "data/datasets"
-outdir = "results/denovo_mapping"
+SAMPLES = SAMPLES_FINAL
+INDIR = "data/datasets"
+OUTDIR = "results/denovo_mapping"
 
 rule all:
     input:
-        outdir + "/star/index",
-        expand(outdir + "/star/mapped.1st/{sample}", sample=samples),
-        expand(outdir + "/star/mapped.2nd/{sample}", sample=samples),
-        expand(outdir + "/filtered/{sample}.bam", sample=samples),
-        expand(outdir + "/rmdup/{sample}.bam", sample=samples),
+        OUTDIR + "/star/index",
+        expand(OUTDIR + "/star/mapped.1st/{sample}", sample=SAMPLES),
+        expand(OUTDIR + "/star/mapped.2nd/{sample}", sample=SAMPLES),
+        expand(OUTDIR + "/filtered/{sample}.bam", sample=SAMPLES),
+        expand(OUTDIR + "/filtered/{sample}.flagstat.txt", sample=SAMPLES),
+        expand(OUTDIR + "/rmdup/{sample}.bam", sample=SAMPLES),
+        expand(OUTDIR + "/rmdup/{sample}.flagstat.txt", sample=SAMPLES),
 
 # Mapping to genome
 
@@ -18,9 +20,9 @@ rule star_index:
     input:
         fasta = GENOME_FASTA
     output:
-        out = directory(outdir + "/star/index")
+        out = directory(OUTDIR + "/star/index")
     log:
-        log = outdir + "/star/index.log"
+        log = OUTDIR + "/star/index.log"
     threads:
         20
     shell:
@@ -34,13 +36,13 @@ rule star_index:
 
 rule star_mapping_1st:
     input:
-        fq1 = indir + "/{sample}_R1.fastq.gz",
-        fq2 = indir + "/{sample}_R2.fastq.gz",
+        fq1 = INDIR + "/{sample}_R1.fastq.gz",
+        fq2 = INDIR + "/{sample}_R2.fastq.gz",
         idx = rules.star_index.output.out
     output:
-        out = directory(outdir + "/star/mapped.1st/{sample}")
+        out = directory(OUTDIR + "/star/mapped.1st/{sample}")
     log:
-        log = outdir + "/star/mapped.1st/{sample}.log"
+        log = OUTDIR + "/star/mapped.1st/{sample}.log"
     threads:
         20
     shell:
@@ -59,18 +61,18 @@ rule star_mapping_1st:
 
 rule star_mapping_2nd:
     input:
-        fq1 = indir + "/{sample}_R1.fastq.gz",
-        fq2 = indir + "/{sample}_R2.fastq.gz", 
+        fq1 = INDIR + "/{sample}_R1.fastq.gz",
+        fq2 = INDIR + "/{sample}_R2.fastq.gz", 
         idx = rules.star_index.output.out,
-        tabs = expand(outdir + "/star/mapped.1st/{sample}", sample=final_samples)
+        tabs = expand(OUTDIR + "/star/mapped.1st/{sample}", sample=SAMPLES)
     output:
-        out = directory(outdir + "/star/mapped.2nd/{sample}")
+        out = directory(OUTDIR + "/star/mapped.2nd/{sample}")
     log:
-        log = outdir + "/star/mapped.2nd/{sample}.log"
+        log = OUTDIR + "/star/mapped.2nd/{sample}.log"
     threads:
         20
     params:
-        tabs = " ".join([outdir + "/star/mapped.1st/%s/SJ.out.tab" % s for s in samples])
+        tabs = " ".join([OUTDIR + "/star/mapped.1st/%s/SJ.out.tab" % s for s in SAMPLES])
     shell:
         """
         mkdir {output}
@@ -78,13 +80,14 @@ rule star_mapping_2nd:
             --outSAMtype BAM SortedByCoordinate \
             --outSAMattributes NH HI AS nM NM MD jM jI MC ch XS \
             --limitBAMsortRAM 10000000000 \
-            --limitSjdbInsertNsj=2000000 \
+            --limitSjdbInsertNsj 2000000 \
             --readFilesCommand zcat \
             --runThreadN {threads} \
             --outFileNamePrefix {output}/ \
             --sjdbFileChrStartEnd {params.tabs} \
             --readFilesIn {input.fq1} {input.fq2} &> {log}
         """
+        # outFilterMultimapNmax
 
 # Filtered
 
@@ -92,12 +95,18 @@ rule filter_bam:
     input:
         bamdir = rules.star_mapping_2nd.output.out
     output:
-        bam = outdir + "/filtered/{sample}.bam"
+        bam = OUTDIR + "/filtered/{sample}.bam"
     threads:
-        8
+        4
     shell:
         """
-        samtools view -@ {threads} -F 2308 -f 3 -d 'NH:1' --expr 'rname =~ "^NW_"' -o {output.bam} {input.bamdir}/Aligned.sortedByCoord.out.bam
+        samtools view -@ {threads} \
+            -F 2308 \
+            -f 3 \
+            -d 'NH:1' \
+            --expr 'rname =~ "^NW_"' \
+            -o {output.bam} \
+            {input.bamdir}/Aligned.sortedByCoord.out.bam
         samtools index -@ {threads} {output.bam}
         """
 
@@ -107,16 +116,20 @@ rule remove_duplicate:
     input:
         bam = rules.filter_bam.output.bam
     output:
-        bam = outdir + "/rmdup/{sample}.bam",
-        txt = outdir + "/rmdup/{sample}_metrics.txt"
+        bam = OUTDIR + "/rmdup/{sample}.bam",
+        txt = OUTDIR + "/rmdup/{sample}_metrics.txt"
     log:
-        log = outdir + "/rmdup/{sample}.log"
+        log = OUTDIR + "/rmdup/{sample}.log"
     threads:
-        8
+        4
     shell:
         """
-        picard MarkDuplicates -REMOVE_DUPLICATES true -TAGGING_POLICY All \
-            -I {input.bam} -O {output.bam} -M {output.txt} &> {log}
+        picard MarkDuplicates \
+            -REMOVE_DUPLICATES true \
+            -TAGGING_POLICY All \
+            -I {input.bam} \
+            -O {output.bam} \
+            -M {output.txt} &> {log}
         samtools index -@ {threads} {output.bam}
         """
 
@@ -128,7 +141,9 @@ rule bam_flagstat:
         bam = "{prefix}.bam"
     output:
         txt = "{prefix}.flagstat.txt"
+    threads:
+        4
     shell:
         """
-        samtools flagstat {input.bam} > {output.txt}
+        samtools flagstat -@ {threads} {input.bam} > {output.txt}
         """
