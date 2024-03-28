@@ -1,0 +1,5 @@
+e7869a38721fc6bb5c3bd4cf7012c3cd  Seriola_dumerili.Sdu_1.0.103.converted.clean.gtf
+441b274fdc551efbe666aaae622cd185  Seriola_dumerili.Sdu_1.0.103.converted.clean.sorted.gtf.gz
+235f14324b150cc22956099928ea457a  Seriola_dumerili.Sdu_1.0.103.converted.clean.sorted.gtf.gz.tbi
+8730fe7f2cc14d466cda981408a33001  Seriola_dumerili.Sdu_1.0.103.converted.gtf
+090190653f7b7e04fd2a12032591be8b  Seriola_dumerili.Sdu_1.0.103.gtf.gz
