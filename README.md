@@ -8,3 +8,5 @@ Content of sub-directory:
 | 2_analysis_of_iso_seq | Analysis of Iso-seq. |
 | 3_integrate_isoforms | Integrate NGS-based and TGS-based isoforms and other analysis. |
 | common | Files download from NCBI, Ensembl or others. |
+| envs | Config files for conda enviroments. |
+
