@@ -1,0 +1,12 @@
+ea52009148d2b37e913d3d28460e5522  GCF_002260705.1_Sdu_1.0_genomic.clean.gtf
+01857aa30f450eb21034dae83b869654  GCF_002260705.1_Sdu_1.0_genomic.clean.sorted.bed
+7622083e629acc3182ec956287087559  GCF_002260705.1_Sdu_1.0_genomic.clean.sorted.bed.gz
+6ee29c0113e348f2fe40b916f14d265d  GCF_002260705.1_Sdu_1.0_genomic.clean.sorted.bed.gz.tbi
+4c7966936d1d685d3b038ea6a96c552f  GCF_002260705.1_Sdu_1.0_genomic.clean.sorted.gtf.gz
+85dd4a7b0f88dfa822d6c41e5cc9da64  GCF_002260705.1_Sdu_1.0_genomic.clean.sorted.gtf.gz.tbi
+40c9199effa3a119ac4846d5c0377d27  GCF_002260705.1_Sdu_1.0_genomic.fa
+18d87377b678f88b1ec90d9c358de71c  GCF_002260705.1_Sdu_1.0_genomic.fa.fai
+2fd0762cf189067c8ce8a3dbe43c7484  GCF_002260705.1_Sdu_1.0_genomic.fna.gz
+1c63b1809f49654b8013833146e3a9a1  GCF_002260705.1_Sdu_1.0_genomic.gtf.gz
+42821602722cc14a53c5b13481738714  GCF_002260705.1_Sdu_1.0_genomic.ncbi_id_to_ddbj_id.txt
+d090699f2434bb5c0cc2b9dfdbd21108  GCF_002260705.1_Sdu_1.0_genomic.sizes
