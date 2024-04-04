@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys
-from pyBioInfo.IO.File import BedFile, GtfFile, GtfTranscriptBuilder, FastaFile
+from pyBioInfo.IO.File import BedFile, GtfFile, GtfTranscriptBuilder, FastaFileRandom
 
 
 def is_internal_primer(seq): 
@@ -25,7 +25,7 @@ def main():
         transcripts = list(filter(lambda item: len(item) >= 200, transcripts))
         transcripts = list(filter(lambda item: item.chrom != "NC_016870.1", transcripts))
 
-        with FastaFile(f_fasta) as fasta:
+        with FastaFileRandom(f_fasta) as fasta:
             for transcript in transcripts:
                 if transcript.strand == "+":
                     start = transcript.end
@@ -55,7 +55,7 @@ def main():
         
         transcripts = list(BedFile(f_bed))
         
-        with FastaFile(f_fasta) as fasta:
+        with FastaFileRandom(f_fasta) as fasta:
             for transcript in transcripts:
                 if transcript.strand == "+":
                     start = transcript.end
