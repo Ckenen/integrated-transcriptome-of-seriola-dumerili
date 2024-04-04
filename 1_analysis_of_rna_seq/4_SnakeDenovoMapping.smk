@@ -14,8 +14,6 @@ rule all:
         expand(OUTDIR + "/rmdup/{sample}.bam", sample=SAMPLES),
         expand(OUTDIR + "/rmdup/{sample}.flagstat.txt", sample=SAMPLES),
 
-# Mapping to genome
-
 rule star_index:
     input:
         fasta = GENOME_FASTA
@@ -23,11 +21,13 @@ rule star_index:
         out = directory(OUTDIR + "/star/index")
     log:
         log = OUTDIR + "/star/index.log"
+    conda:
+        "star"
     threads:
-        20
+        THREADS
     shell:
         """
-        mkdir {output}
+        mkdir -p {output}
         STAR --runMode genomeGenerate \
             --runThreadN {threads} \
             --genomeDir {output} \
@@ -43,8 +43,10 @@ rule star_mapping_1st:
         out = directory(OUTDIR + "/star/mapped.1st/{sample}")
     log:
         log = OUTDIR + "/star/mapped.1st/{sample}.log"
+    conda:
+        "star"
     threads:
-        20
+        THREADS
     shell:
         """
         mkdir {output}
@@ -64,15 +66,17 @@ rule star_mapping_2nd:
         fq1 = INDIR + "/{sample}_R1.fastq.gz",
         fq2 = INDIR + "/{sample}_R2.fastq.gz", 
         idx = rules.star_index.output.out,
-        tabs = expand(OUTDIR + "/star/mapped.1st/{sample}", sample=SAMPLES)
+        sjdb = expand(OUTDIR + "/star/mapped.1st/{sample}", sample=SAMPLES)
     output:
         out = directory(OUTDIR + "/star/mapped.2nd/{sample}")
     log:
         log = OUTDIR + "/star/mapped.2nd/{sample}.log"
+    conda:
+        "star"
     threads:
-        20
+        THREADS
     params:
-        tabs = " ".join([OUTDIR + "/star/mapped.1st/%s/SJ.out.tab" % s for s in SAMPLES])
+        sjdb = " ".join([OUTDIR + "/star/mapped.1st/%s/SJ.out.tab" % s for s in SAMPLES])
     shell:
         """
         mkdir {output}
@@ -84,22 +88,21 @@ rule star_mapping_2nd:
             --readFilesCommand zcat \
             --runThreadN {threads} \
             --outFileNamePrefix {output}/ \
-            --sjdbFileChrStartEnd {params.tabs} \
+            --sjdbFileChrStartEnd {params.sjdb} \
             --readFilesIn {input.fq1} {input.fq2} &> {log}
         """
-        # outFilterMultimapNmax
-
-# Filtered
 
 rule filter_bam:
     input:
         bamdir = rules.star_mapping_2nd.output.out
     output:
         bam = OUTDIR + "/filtered/{sample}.bam"
+    log:
+        OUTDIR + "/filtered/{sample}.log"
     threads:
         4
     shell:
-        """
+        """(
         samtools view -@ {threads} \
             -F 2308 \
             -f 3 \
@@ -107,10 +110,8 @@ rule filter_bam:
             --expr 'rname =~ "^NW_"' \
             -o {output.bam} \
             {input.bamdir}/Aligned.sortedByCoord.out.bam
-        samtools index -@ {threads} {output.bam}
+        samtools index -@ {threads} {output.bam} ) &> {log}
         """
-
-# rmdup
 
 rule remove_duplicate:
     input:
@@ -120,8 +121,10 @@ rule remove_duplicate:
         txt = OUTDIR + "/rmdup/{sample}_metrics.txt"
     log:
         log = OUTDIR + "/rmdup/{sample}.log"
+    conda:
+        "picard"
     threads:
-        4
+        THREADS
     shell:
         """
         picard MarkDuplicates \
@@ -132,9 +135,6 @@ rule remove_duplicate:
             -M {output.txt} &> {log}
         samtools index -@ {threads} {output.bam}
         """
-
-
-# Common rules
 
 rule bam_flagstat:
     input:

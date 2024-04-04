@@ -1,4 +1,4 @@
-#!/usr/bin/env snakemake
+#!/usr/bin/env runsnakemake
 include: "0_SnakeCommon.smk"
 SAMPLES = SAMPLES_ALL
 INDIR = "results/mapping/rmdup"
@@ -16,12 +16,16 @@ rule stringtie:
         out = directory(OUTDIR + "/stringtie/{sample}")
     log:
         OUTDIR + "/stringtie/{sample}.log"
+    conda:
+        "stringtie"
     threads:
-        8
+        4
     shell:
         """
         mkdir {output.out}
-        stringtie {input.bam} --rf -e \
+        stringtie {input.bam} \
+            --rf \
+            -e \
             -A {output.out}/gene_abund.tab \
             -C {output.out}/cov_refs.gtf \
             -p {threads} \

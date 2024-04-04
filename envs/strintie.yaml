@@ -1,0 +1,6 @@
+name: strintie
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+prefix: /home/chenzonggui/anaconda3/envs/strintie

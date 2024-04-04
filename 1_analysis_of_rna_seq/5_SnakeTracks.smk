@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env runsnakemake
 include: "0_SnakeCommon.smk"
 SAMPLES = SAMPLES_FINAL
 INDIR = "results/denovo_mapping/rmdup"
@@ -21,8 +21,6 @@ rule all:
         expand(OUTDIR + "/bw/{sample}.norm.+.bw", sample=SAMPLES),
         expand(OUTDIR + "/bw/{sample}.norm.-.bw", sample=SAMPLES)
 
-# BED
-
 rule make_fragment_bed:
     input:  
         bam = INDIR + "/{sample}.bam"
@@ -32,8 +30,6 @@ rule make_fragment_bed:
         """
         ./scripts/make_fragment_bed.py {input.bam} {output.bed}
         """
-
-# Library size
 
 rule get_library_size:
     input:
@@ -45,20 +41,18 @@ rule get_library_size:
         wc -l {input.bed} > {output.txt}
         """
 
-# BEDGRAPH
-
 rule bed_to_bedgraph:
     input:
         bed = rules.make_fragment_bed.output.bed,
         gsize = GENOME_SIZES
     output:
         tmp = temp(directory(OUTDIR + "/bg/{sample}.bg.SORT_TMP")),
-        bg = OUTDIR + "/bg/{sample}.bg",
+        bg = OUTDIR + "/bg/{sample}.bg"
     shell:
         """
         mkdir {output.tmp}
-        bedtools genomecov -bg -split -i {input.bed} -g {input.gsize} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
-
+        bedtools genomecov -bg -split -i {input.bed} -g {input.gsize} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
 
 rule bed_to_bedgraph_pos:
@@ -71,7 +65,8 @@ rule bed_to_bedgraph_pos:
     shell:
         """
         mkdir {output.tmp}
-        bedtools genomecov -bg -split -strand + -i {input.bed} -g {input.genome} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
+        bedtools genomecov -bg -split -strand + -i {input.bed} -g {input.genome} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
 
 rule bed_to_bedgraph_neg:
@@ -84,7 +79,8 @@ rule bed_to_bedgraph_neg:
     shell:
         """
         mkdir {output.tmp}
-        bedtools genomecov -bg -split -strand - -i {input.bed} -g {input.genome} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
+        bedtools genomecov -bg -split -strand - -i {input.bed} -g {input.genome} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
 
 rule bed_to_bedgraph_norm:
@@ -99,7 +95,8 @@ rule bed_to_bedgraph_norm:
         """
         mkdir {output.tmp}
         scale=`cat {input.txt} | awk '{{print 1000000/$0}}'`
-        bedtools genomecov -bg -split -scale $scale -i {input.bed} -g {input.genome} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
+        bedtools genomecov -bg -split -scale $scale -i {input.bed} -g {input.genome} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
 
 rule bed_to_bedgraph_norm_pos:
@@ -114,7 +111,8 @@ rule bed_to_bedgraph_norm_pos:
         """
         mkdir {output.tmp}
         scale=`cat {input.txt} | awk '{{print 1000000/$0}}'`
-        bedtools genomecov -bg -split -scale $scale -strand + -i {input.bed} -g {input.genome} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
+        bedtools genomecov -bg -split -scale $scale -strand + -i {input.bed} -g {input.genome} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
 
 rule bed_to_bedgraph_norm_neg:
@@ -129,11 +127,9 @@ rule bed_to_bedgraph_norm_neg:
         """
         mkdir {output.tmp}
         scale=`cat {input.txt} | awk '{{print 1000000/$0}}'`
-        bedtools genomecov -bg -split -scale $scale -strand - -i {input.bed} -g {input.genome} | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
+        bedtools genomecov -bg -split -scale $scale -strand - -i {input.bed} -g {input.genome} \
+            | sort -T {output.tmp} -k1,1 -k2,2n > {output.bg}
         """
-
-
-# BIGWIG
 
 rule bedgraph_to_bigwig:
     input:

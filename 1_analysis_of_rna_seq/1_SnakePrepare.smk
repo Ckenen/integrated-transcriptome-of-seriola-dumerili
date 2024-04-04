@@ -5,12 +5,9 @@ INDIR = "data/datasets"
 OUTDIR = "results/prepare"
 RS = ["R1", "R2"]
 
-
 rule all:
     input:
         expand(OUTDIR + "/fastqc/{sample}_{r}_fastqc.html", sample=SAMPLES, r=RS),
-
-# FastQC
 
 rule fastqc:
     input:
@@ -19,6 +16,8 @@ rule fastqc:
         html = OUTDIR + "/fastqc/{name}_fastqc.html"
     log:
         log = OUTDIR + "/fastqc/{name}.log"
+    conda:
+        "fastqc"
     shell:
         """
         fastqc -o `dirname {output.html}` {input} &> {log}

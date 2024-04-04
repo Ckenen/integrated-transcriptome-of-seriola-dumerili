@@ -1,4 +1,4 @@
-#!/usr/bin/env runsnakemakeSAMPLES
+#!/usr/bin/env runsnakemake
 include: "0_SnakeCommon.smk"
 SAMPLES = SAMPLES_ALL
 INDIR = "data/datasets"
@@ -12,8 +12,6 @@ rule all:
         expand(OUTDIR + "/infered/{sample}.txt", sample=SAMPLES),
         expand(OUTDIR + "/rmdup/{sample}.bam", sample=SAMPLES),
 
-# Build index and align reads to genome.
-
 rule star_index:
     input:
         fasta = GENOME_FASTA,
@@ -22,8 +20,10 @@ rule star_index:
         out = directory(OUTDIR + "/star/index")
     log:
         log = OUTDIR + "/star/index.log"
+    conda:
+        "star"
     threads:
-        20
+        THREADS
     shell:
         """
         mkdir {output.out}
@@ -35,20 +35,19 @@ rule star_index:
             --genomeFastaFiles {input.fasta} &> {log}
         """
 
-# Run the following command when finished:
-# STAR --genomeLoad Remove --genomeDir  results/mapping/star/index
-
 rule star_mapping:
     input:
         fq1 = INDIR + "/{sample}_R1.fastq.gz",
         fq2 = INDIR + "/{sample}_R2.fastq.gz", 
-        idx = rules.star_index.output.out,
+        idx = rules.star_index.output.out
     output:
         out = directory(OUTDIR + "/star/mapped/{sample}")
     log:
         log = OUTDIR + "/star/mapped/{sample}.log"
+    conda:
+        "star"
     threads:
-        20
+        THREADS
     shell:
         """
         mkdir {output}
@@ -68,17 +67,20 @@ rule filter_bam:
         bamdir = rules.star_mapping.output.out
     output:
         bam = OUTDIR + "/filtered/{sample}.bam"
+    log:
+        OUTDIR + "/filtered/{sample}.log"
     threads:
-        8
+        4
     shell:
-        """
+        """(
         samtools view -@ {threads} \
             -F 2308 \
             -f 3 \
             -d 'NH:1' \
+            --expr 'rname =~ "^NW_"' \
             -o {output.bam} \
             {input.bamdir}/Aligned.sortedByCoord.out.bam
-        samtools index -@ {threads} {output.bam}
+        samtools index -@ {threads} {output.bam} ) &> {log}
         """
 
 rule infer_experiment:
@@ -87,12 +89,15 @@ rule infer_experiment:
         bed = ANNOTATION_BED
     output:
         txt = OUTDIR + "/infered/{sample}.txt"
+    log:
+        OUTDIR + "/infered/{sample}.log"
+    conda:
+        "rseqc"
     shell:
         """
-        set +u; source activate py27
-        infer_experiment.py -i {input.bam} \
-            -r {input.bed} > {output.txt} 2> /dev/null
-        conda deactivate 
+        infer_experiment.py \
+            -i {input.bam} \
+            -r {input.bed} > {output.txt} 2> {log}
         """
 
 rule rmdup:
@@ -103,8 +108,8 @@ rule rmdup:
         txt = OUTDIR + "/rmdup/{sample}_metrics.txt"
     log:
         OUTDIR + "/rmdup/{sample}.log"
-    threads:
-        20
+    conda:
+        "picard"
     shell:
         """
         picard MarkDuplicates -REMOVE_DUPLICATES true \
